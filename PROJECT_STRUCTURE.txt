@@ -1,0 +1,227 @@
+========================================
+CẤU TRÚC DỰ ÁN WEBSITE THUÊ XE TỰ LÁI
+========================================
+
+📁 WEBTHUEXE/
+│
+├── 📁 admin/                      [Trang quản trị - Admin only]
+│   ├── dashboard.php              - Trang tổng quan Admin
+│   ├── users.php                  - Quản lý người dùng
+│   ├── cars.php                   - Quản lý tất cả xe
+│   └── bookings.php               - Quản lý tất cả đơn đặt
+│
+├── 📁 api/                        [API và tích hợp bên thứ 3]
+│   ├── vnpay-payment.php          - Tạo link thanh toán VNPAY
+│   └── vnpay-return.php           - Xử lý kết quả trả về từ VNPAY
+│
+├── 📁 assets/                     [Tài nguyên tĩnh]
+│   ├── 📁 css/
+│   │   └── style.css              - CSS chính cho toàn website
+│   └── 📁 js/
+│       └── main.js                - JavaScript chung
+│
+├── 📁 auth/                       [Xác thực người dùng]
+│   ├── login.php                  - Trang đăng nhập
+│   ├── register.php               - Trang đăng ký
+│   └── logout.php                 - Xử lý đăng xuất
+│
+├── 📁 client/                     [Chức năng khách hàng]
+│   ├── car-detail.php             - Chi tiết xe và đánh giá
+│   ├── booking.php                - Form đặt xe
+│   ├── payment.php                - Chọn phương thức thanh toán
+│   ├── my-bookings.php            - Danh sách đơn đặt của khách
+│   └── review.php                 - Đánh giá xe sau khi thuê
+│
+├── 📁 config/                     [Cấu hình hệ thống]
+│   ├── database.php               - Kết nối database
+│   └── session.php                - Quản lý session và authentication
+│
+├── 📁 host/                       [Chức năng chủ xe]
+│   ├── dashboard.php              - Trang tổng quan chủ xe
+│   ├── add-car.php                - Thêm xe mới
+│   ├── edit-car.php               - Sửa thông tin xe
+│   ├── delete-car.php             - Xóa xe
+│   └── car-bookings.php           - Quản lý đơn đặt xe của mình
+│
+├── 📁 includes/                   [Components dùng chung]
+│   ├── header.php                 - Header với navigation
+│   └── footer.php                 - Footer
+│
+├── 📁 uploads/                    [Thư mục chứa file upload]
+│   └── default-car.jpg.txt        - Hướng dẫn thêm ảnh mặc định
+│
+├── .htaccess                      - Cấu hình Apache
+├── index.php                      - Trang chủ (danh sách xe, tìm kiếm)
+├── schema.sql                     - Database schema và dữ liệu mẫu
+├── INSTALL.txt                    - Hướng dẫn cài đặt chi tiết
+└── PROJECT_STRUCTURE.txt          - File này
+
+========================================
+DATABASE SCHEMA
+========================================
+
+1. users                           [Người dùng]
+   - id, username, email, password, role (customer/host/admin)
+   - full_name, phone, created_at
+
+2. cars                            [Xe cho thuê]
+   - id, owner_id, name, description, image
+   - price_per_day, car_type (sedan/suv/mpv/pickup)
+   - status (available/rented/maintenance), created_at
+
+3. bookings                        [Đơn đặt xe]
+   - id, car_id, customer_id
+   - start_date, end_date, total_price
+   - status (pending/confirmed/rejected/completed/cancelled)
+   - created_at
+
+4. payments                        [Thanh toán]
+   - id, booking_id, amount, payment_method
+   - transaction_id, status (pending/completed/failed)
+   - created_at
+
+5. reviews                         [Đánh giá]
+   - id, car_id, customer_id, booking_id
+   - rating (1-5), comment, created_at
+
+========================================
+FLOW HOẠT ĐỘNG
+========================================
+
+📍 KHÁCH HÀNG (Customer):
+1. Đăng ký tài khoản role = customer
+2. Tìm kiếm xe trên trang chủ (index.php)
+3. Xem chi tiết xe (client/car-detail.php)
+4. Đặt xe (client/booking.php) - chọn ngày, tính tiền
+5. Thanh toán (client/payment.php) → VNPAY
+6. Theo dõi đơn (client/my-bookings.php)
+7. Đánh giá xe sau khi hoàn thành (client/review.php)
+
+📍 CHỦ XE (Host):
+1. Đăng ký tài khoản role = host
+2. Thêm xe (host/add-car.php)
+3. Quản lý xe của mình (host/dashboard.php)
+4. Sửa/Xóa xe (host/edit-car.php, host/delete-car.php)
+5. Xem đơn đặt xe (host/car-bookings.php)
+6. Xác nhận/Từ chối đơn đặt
+
+📍 ADMIN:
+1. Đăng nhập với tài khoản admin
+2. Xem thống kê tổng quan (admin/dashboard.php)
+3. Quản lý người dùng (admin/users.php)
+4. Quản lý tất cả xe (admin/cars.php)
+5. Quản lý tất cả đơn đặt (admin/bookings.php)
+
+========================================
+TÍNH NĂNG CHÍNH
+========================================
+
+✅ Authentication & Authorization
+   - Đăng ký, đăng nhập, đăng xuất
+   - 3 role: Customer, Host, Admin
+   - Session management
+   - Password hashing (password_hash)
+
+✅ Quản lý xe (CRUD)
+   - Thêm, sửa, xóa xe
+   - Upload ảnh xe
+   - Quản lý trạng thái xe
+
+✅ Tìm kiếm và Filter
+   - Tìm theo tên, mô tả
+   - Lọc theo loại xe
+   - Lọc theo khoảng giá
+
+✅ Đặt xe
+   - Chọn ngày bắt đầu - kết thúc
+   - Tính tổng tiền tự động
+   - Kiểm tra trùng lịch
+   - Lưu booking vào DB
+
+✅ Thanh toán
+   - Tích hợp VNPAY (Sandbox)
+   - Cập nhật trạng thái thanh toán
+   - Xác nhận đơn tự động khi thanh toán
+
+✅ Đánh giá
+   - Rating 1-5 sao
+   - Comment/Nhận xét
+   - Hiển thị trên trang chi tiết xe
+
+✅ Dashboard
+   - Thống kê cho Admin
+   - Thống kê cho Host
+   - Quản lý đơn đặt
+
+========================================
+BẢO MẬT
+========================================
+
+🔒 SQL Injection Prevention
+   - Sử dụng Prepared Statements (mysqli)
+   - Bind parameters cho mọi query
+
+🔒 XSS Prevention
+   - htmlspecialchars() cho mọi output
+   - Sanitize user input
+
+🔒 Authentication
+   - Session-based authentication
+   - Password hashing với password_hash()
+   - Role-based access control
+
+🔒 File Upload Security
+   - Kiểm tra extension
+   - Rename file khi upload
+   - Giới hạn file size
+
+========================================
+CÔNG NGHỆ SỬ DỤNG
+========================================
+
+Frontend:
+- HTML5
+- CSS3 (Pure CSS, không dùng framework)
+- JavaScript (Vanilla JS, không dùng library)
+
+Backend:
+- PHP 7.4+
+- MySQL 5.7+
+- Apache (mod_rewrite)
+
+Payment Gateway:
+- VNPAY Sandbox (Test)
+
+========================================
+TÀI KHOẢN DEMO
+========================================
+
+Admin:
+- Username: admin
+- Password: 123456
+
+Host (Chủ xe):
+- Username: host1 / host2
+- Password: 123456
+
+Customer (Khách hàng):
+- Username: customer1 / customer2
+- Password: 123456
+
+========================================
+PHÁT TRIỂN THÊM (Future)
+========================================
+
+🚀 Có thể thêm:
+- Stripe/PayPal payment
+- Email notifications
+- SMS OTP
+- Real-time chat
+- Google Maps integration
+- Mobile responsive improvements
+- Admin analytics dashboard
+- Export PDF/Excel reports
+- Multi-language support
+- API RESTful
+
+========================================

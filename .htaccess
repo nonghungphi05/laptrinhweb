@@ -1,0 +1,52 @@
+# Cấu hình Apache cho website thuê xe
+
+# Bật Rewrite Engine
+RewriteEngine On
+
+# Chuyển hướng www sang non-www (tùy chọn)
+# RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+# RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+# Bảo vệ file cấu hình
+<FilesMatch "^(config|schema)\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bảo vệ file .sql
+<FilesMatch "\.(sql|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bật PHP error reporting (tắt khi production)
+php_flag display_errors Off
+php_flag display_startup_errors Off
+
+# Tăng upload file size
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+
+# Set timezone
+php_value date.timezone "Asia/Ho_Chi_Minh"
+
+# Custom error pages (tùy chọn)
+# ErrorDocument 404 /404.php
+# ErrorDocument 500 /500.php
+
+# Cache static files
+<FilesMatch "\.(jpg|jpeg|png|gif|css|js|ico)$">
+    Header set Cache-Control "max-age=2592000, public"
+</FilesMatch>
+
+# Gzip compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

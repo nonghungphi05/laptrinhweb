@@ -1,0 +1,141 @@
+========================================
+HƯỚNG DẪN CÀI ĐẶT WEBSITE THUÊ XE TỰ LÁI
+========================================
+
+YÊU CẦU HỆ THỐNG:
+-----------------
+- XAMPP (PHP 7.4 trở lên, MySQL 5.7 trở lên)
+- Trình duyệt web hiện đại (Chrome, Firefox, Edge...)
+- Module Apache: mod_rewrite
+
+BƯỚC 1: CÀI ĐẶT XAMPP
+----------------------
+1. Tải và cài đặt XAMPP từ: https://www.apachefriends.org/
+2. Khởi động Apache và MySQL trong XAMPP Control Panel
+
+BƯỚC 2: IMPORT DATABASE
+-----------------------
+1. Mở phpMyAdmin: http://localhost/phpmyadmin
+2. Tạo database mới tên "car_rental" hoặc import trực tiếp file schema.sql
+3. Import file schema.sql:
+   - Click vào database car_rental
+   - Chọn tab "Import"
+   - Chọn file schema.sql
+   - Click "Go"
+
+Hoặc sử dụng command line:
+mysql -u root -p < schema.sql
+
+BƯỚC 3: CẤU HÌNH DATABASE
+-------------------------
+1. Mở file config/database.php
+2. Kiểm tra thông tin kết nối:
+   - DB_HOST: localhost
+   - DB_USER: root
+   - DB_PASS: (để trống nếu dùng XAMPP mặc định)
+   - DB_NAME: car_rental
+
+BƯỚC 4: COPY FILE VÀO HTDOCS
+----------------------------
+1. Copy toàn bộ thư mục dự án vào: C:\xampp\htdocs\webthuexe
+   (hoặc /opt/lampp/htdocs/webthuexe trên Linux)
+
+BƯỚC 5: PHÂN QUYỀN THU MỤC (Linux/Mac)
+--------------------------------------
+chmod -R 755 /opt/lampp/htdocs/webthuexe
+chmod -R 777 /opt/lampp/htdocs/webthuexe/uploads
+
+BƯỚC 6: TRUY CẬP WEBSITE
+------------------------
+1. Mở trình duyệt
+2. Truy cập: http://localhost/webthuexe hoặc http://localhost/webthuexe/index.php
+
+BƯỚC 7: ĐĂNG NHẬP TEST
+---------------------
+Website đã có sẵn tài khoản demo (password: 123456):
+
+ADMIN:
+- Username: admin
+- Password: 123456
+
+CHỦ XE:
+- Username: host1
+- Password: 123456
+
+KHÁCH HÀNG:
+- Username: customer1
+- Password: 123456
+
+BƯỚC 8: CẤU HÌNH VNPAY (TÙY CHỌN)
+---------------------------------
+Để test thanh toán VNPAY:
+1. Website đang dùng VNPAY Sandbox
+2. Không cần đăng ký, có thể test ngay
+3. File cấu hình: api/vnpay-payment.php
+4. Sử dụng thông tin test card từ VNPAY sandbox
+
+BƯỚC 9: THÊM ẢNH MẶC ĐỊNH
+-------------------------
+1. Tìm một ảnh xe bất kỳ từ internet
+2. Đổi tên thành: default-car.jpg
+3. Copy vào thư mục: uploads/default-car.jpg
+
+CẤU TRÚC THƯ MỤC:
+-----------------
+/admin          - Trang quản trị (Admin)
+/api            - API thanh toán VNPAY
+/assets         - CSS, JS, hình ảnh
+/auth           - Đăng ký, đăng nhập
+/client         - Chức năng khách hàng
+/config         - Cấu hình database, session
+/host           - Chức năng chủ xe
+/includes       - Header, footer
+/uploads        - Thư mục chứa ảnh upload
+index.php       - Trang chủ
+schema.sql      - Database schema
+
+TÍNH NĂNG CHÍNH:
+----------------
+✓ Đăng ký/Đăng nhập (3 role: Admin, Chủ xe, Khách hàng)
+✓ Quản lý xe (CRUD) - Chủ xe
+✓ Tìm kiếm xe theo giá, loại
+✓ Đặt xe với kiểm tra trùng lịch
+✓ Thanh toán VNPAY (Sandbox)
+✓ Xác nhận/Từ chối đơn - Chủ xe
+✓ Đánh giá xe (1-5 sao) - Khách hàng
+✓ Quản trị hệ thống - Admin
+
+XỬ LÝ LỖI THƯỜNG GẶP:
+--------------------
+1. Lỗi kết nối database:
+   - Kiểm tra MySQL đã chạy chưa
+   - Kiểm tra thông tin trong config/database.php
+
+2. Lỗi 404 Not Found:
+   - Kiểm tra đường dẫn thư mục trong htdocs
+   - Kiểm tra mod_rewrite đã bật chưa
+
+3. Lỗi upload ảnh:
+   - Kiểm tra quyền thư mục uploads (777)
+   - Kiểm tra upload_max_filesize trong php.ini
+
+4. Lỗi session:
+   - Xóa cache trình duyệt
+   - Kiểm tra session.save_path trong php.ini
+
+HỖ TRỢ:
+-------
+Nếu gặp vấn đề, kiểm tra:
+- PHP error log: C:\xampp\apache\logs\error.log
+- MySQL error log: C:\xampp\mysql\data\*.err
+
+PHÁT TRIỂN THÊM:
+---------------
+- Tích hợp Stripe/PayPal
+- Thêm chat realtime
+- Email notification
+- SMS OTP
+- Google Maps integration
+- Báo cáo thống kê nâng cao
+
+Chúc bạn sử dụng thành công!
