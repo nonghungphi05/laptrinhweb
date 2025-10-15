@@ -1,0 +1,19 @@
+# Force GitHub chỉ nhận diện PHP, CSS, JavaScript
+
+# Tất cả file PHP
+*.php linguist-language=PHP
+
+# File CSS
+*.css linguist-language=CSS
+
+# File JavaScript
+*.js linguist-language=JavaScript
+
+# Bỏ qua các file không cần đếm
+*.txt linguist-documentation
+*.md linguist-documentation
+*.sql linguist-detectable=false
+
+# Loại trừ thư mục uploads khỏi statistics
+uploads/* linguist-vendored
+
