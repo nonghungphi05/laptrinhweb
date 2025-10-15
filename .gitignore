@@ -1,0 +1,35 @@
+# File .gitignore - Các file không cần upload lên GitHub
+
+# Folder uploads (ảnh người dùng upload)
+uploads/*
+!uploads/default-car.jpg.txt
+
+# File config database (có thông tin nhạy cảm)
+# Nếu muốn ẩn thông tin database, uncomment dòng dưới
+# config/database.php
+
+# File hệ thống Windows
+Thumbs.db
+desktop.ini
+
+# File hệ thống Mac
+.DS_Store
+
+# File IDE
+.vscode/
+.idea/
+
+# File tạm
+*.tmp
+*.bak
+*.old
+*.err
+*.lock
+
+# File batch test
+fix_mysql*.bat
+reset_mysql*.bat
+debug*.php
+test*.php
+fix_password.php
+
