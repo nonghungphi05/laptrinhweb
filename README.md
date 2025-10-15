@@ -118,14 +118,6 @@ Truy cập: `http://localhost/webthuexe/api/test-vnpay.php`
 - Ngày phát hành: 07/15
 - Mã OTP: 123456
 
-## 🔒 Bảo mật
-
-- **SQL Injection Prevention** - Sử dụng Prepared Statements
-- **XSS Prevention** - Sử dụng htmlspecialchars()
-- **Password Hashing** - Sử dụng password_hash() và password_verify()
-- **Session-based Authentication** - Quản lý đăng nhập qua session
-- **Role-based Access Control** - Phân quyền theo vai trò người dùng
-
 ## 📝 Database Schema
 
 ### Bảng `users`
@@ -142,16 +134,3 @@ Lưu trữ thông tin thanh toán
 
 ### Bảng `reviews`
 Lưu trữ đánh giá của khách hàng
-
-## 📖 Hướng dẫn chi tiết
-
-Xem file [INSTALL.txt](INSTALL.txt) để biết thêm chi tiết về cài đặt và sử dụng.
-
-## 📞 Thông tin
-
-**Tác giả:** nonghungphi05  
-**Repository:** https://github.com/nonghungphi05/laptrinhweb
-
----
-
-⭐ Nếu thấy dự án hữu ích, hãy cho một star!
