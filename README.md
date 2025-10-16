@@ -43,11 +43,11 @@ Website quản lý cho thuê xe tự lái với đầy đủ chức năng đặt
 
 ## 🛠️ Công nghệ sử dụng
 
-- **HTML5** - Cấu trúc trang web
-- **CSS3** - Thiết kế giao diện (Pure CSS, không dùng framework)
+- **HTML** - Cấu trúc trang web
+- **CSS** - Thiết kế giao diện (Pure CSS, không dùng framework)
 - **JavaScript** - Xử lý tương tác (Vanilla JS)
-- **PHP 7.4+** - Backend, xử lý logic
-- **MySQL 5.7+** - Quản lý cơ sở dữ liệu
+- **PHP** - Backend, xử lý logic
+- **MySQL ** - Quản lý cơ sở dữ liệu
 - **VNPAY** - Cổng thanh toán online (Sandbox)
 
 ## 📁 Cấu trúc thư mục
@@ -72,9 +72,9 @@ webthuexe/
 ## 🚀 Cài đặt
 
 ### Yêu cầu hệ thống
-- XAMPP (hoặc WAMP, Laragon)
-- PHP 7.4 trở lên
-- MySQL 5.7 trở lên
+- XAMPP
+- PHP 
+- MySQL 
 - Trình duyệt web hiện đại
 
 ### Các bước cài đặt
