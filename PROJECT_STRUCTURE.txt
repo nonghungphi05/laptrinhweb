@@ -1,0 +1,180 @@
+========================================
+CẤU TRÚC DỰ ÁN - DIỄN ĐÀN THUÊ XE
+========================================
+
+📁 LAPTRINHWEB/
+│
+├── 📁 forum/                    [DIỄN ĐÀN - MỚI]
+│   ├── index.php                - Danh sách bài viết
+│   ├── create-post.php          - Đăng bài mới
+│   ├── post-detail.php          - Chi tiết bài viết + bình luận
+│   ├── edit-post.php            - Sửa bài viết
+│   ├── delete-post.php          - Xóa bài viết
+│   └── my-posts.php             - Quản lý bài viết của mình
+│
+├── 📁 admin/                    [QUẢN TRỊ - Admin only]
+│   ├── dashboard.php            - Trang tổng quan Admin
+│   ├── users.php                - Quản lý người dùng
+│   ├── cars.php                 - Quản lý tất cả xe
+│   └── bookings.php             - Quản lý tất cả đơn đặt
+│
+├── 📁 api/                      [API THANH TOÁN]
+│   ├── vnpay-payment.php        - Tạo link thanh toán VNPAY
+│   └── vnpay-return.php         - Xử lý kết quả trả về từ VNPAY
+│
+├── 📁 auth/                     [XÁC THỰC]
+│   ├── login.php                - Đăng nhập
+│   ├── register.php             - Đăng ký (mặc định role = user)
+│   └── logout.php               - Đăng xuất
+│
+├── 📁 client/                   [CHỨC NĂNG USER]
+│   ├── booking.php              - Form đặt xe
+│   ├── payment.php              - Thanh toán
+│   ├── my-bookings.php          - Đơn đặt của tôi
+│   ├── review.php               - Đánh giá xe
+│   └── car-detail.php           - Chi tiết xe (legacy)
+│
+├── 📁 config/                   [CẤU HÌNH]
+│   ├── database.php             - Kết nối database
+│   ├── session.php              - Quản lý session
+│   └── helpers.php              - Các hàm helper
+│
+├── 📁 host/                     [QUẢN LÝ XE - Legacy]
+│   ├── dashboard.php            - Dashboard chủ xe
+│   ├── add-car.php              - Thêm xe
+│   ├── edit-car.php             - Sửa xe
+│   ├── delete-car.php           - Xóa xe
+│   └── car-bookings.php         - Đơn đặt xe của mình
+│   ⚠️ Lưu ý: Có thể dùng forum/create-post.php thay thế
+│
+├── 📁 includes/                 [COMPONENTS]
+│   ├── header.php               - Header với navigation
+│   └── footer.php               - Footer
+│
+├── 📁 assets/                   [TÀI NGUYÊN TĨNH]
+│   ├── css/
+│   │   └── style.css            - CSS chính
+│   └── js/
+│       └── main.js              - JavaScript chung
+│
+├── 📁 uploads/                  [UPLOAD]
+│   └── [Ảnh xe và file upload]
+│
+├── index.php                    - Redirect đến forum/index.php
+├── schema.sql                   - Database schema
+├── migration_to_forum.sql       - Migration script (nếu có DB cũ)
+└── README.md                    - Tài liệu hướng dẫn
+
+========================================
+DATABASE SCHEMA
+========================================
+
+1. users                    [Người dùng]
+   - id, username, email, password
+   - role (user/admin) ⚠️ Đã thay đổi từ customer/host/admin
+   - full_name, phone, created_at
+
+2. categories              [Danh mục bài viết - MỚI]
+   - id, name, slug, description
+   - created_at
+
+3. posts                   [Bài viết - MỚI]
+   - id, user_id, category_id
+   - title, content
+   - post_type (rental/discussion)
+   - car_id (NULL nếu là discussion)
+   - status (active/closed/deleted)
+   - views, created_at, updated_at
+
+4. comments                [Bình luận - MỚI]
+   - id, post_id, user_id
+   - content, parent_id (reply)
+   - status (active/deleted)
+   - created_at, updated_at
+
+5. cars                    [Xe cho thuê]
+   - id, owner_id, post_id ⚠️ Thêm post_id
+   - name, description, image
+   - price_per_day, car_type
+   - status (available/rented/maintenance)
+   - created_at
+
+6. bookings                [Đơn đặt xe]
+   - id, car_id, customer_id
+   - start_date, end_date, total_price
+   - status (pending/confirmed/rejected/completed/cancelled)
+   - created_at
+
+7. payments                [Thanh toán]
+   - id, booking_id, amount
+   - payment_method, transaction_id
+   - status (pending/completed/failed)
+   - created_at
+
+8. reviews                 [Đánh giá]
+   - id, car_id, customer_id, booking_id
+   - rating (1-5), comment
+   - created_at
+
+========================================
+FLOW HOẠT ĐỘNG
+========================================
+
+📍 USER (Có thể vừa thuê vừa đăng bài):
+1. Đăng ký tài khoản (role = user)
+2. Đăng bài cho thuê xe (forum/create-post.php)
+   - Chọn loại bài: Cho thuê xe
+   - Nhập thông tin xe
+   - Bài viết sẽ hiển thị trong diễn đàn
+3. Hoặc thuê xe từ bài viết khác
+   - Xem bài viết (forum/post-detail.php)
+   - Click "Đặt xe ngay"
+   - Chọn ngày, thanh toán
+4. Quản lý bài viết của mình (forum/my-posts.php)
+5. Quản lý đơn đặt (client/my-bookings.php)
+
+📍 ADMIN:
+1. Đăng nhập với role = admin
+2. Quản lý toàn hệ thống (admin/dashboard.php)
+3. Quản lý users, cars, bookings
+
+========================================
+TÍNH NĂNG CHÍNH
+========================================
+
+✅ Diễn đàn
+   - Đăng bài viết (cho thuê xe hoặc thảo luận)
+   - Xem danh sách với filter
+   - Bình luận và reply
+   - Quản lý bài viết
+
+✅ Thuê xe
+   - Đặt xe từ bài viết
+   - Kiểm tra trùng lịch
+   - Thanh toán VNPAY
+   - Đánh giá xe
+
+✅ Quản trị
+   - Quản lý users, cars, bookings
+   - Thống kê tổng quan
+
+========================================
+LƯU Ý QUAN TRỌNG
+========================================
+
+⚠️ THAY ĐỔI LỚN:
+- Role đã thay đổi: customer/host → user
+- Thêm hệ thống diễn đàn (posts, categories, comments)
+- Mỗi user có thể vừa thuê vừa đăng bài
+- Xe được gắn với bài viết qua post_id
+
+⚠️ MIGRATION:
+- Nếu có database cũ, chạy migration_to_forum.sql
+- Backup database trước khi migration
+- Hoặc cài đặt mới với schema.sql
+
+⚠️ LEGACY:
+- Thư mục host/ vẫn còn nhưng có thể dùng forum thay thế
+- client/car-detail.php có thể không cần thiết nữa
+
+========================================

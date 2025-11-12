@@ -1,0 +1,171 @@
+# 🚗 Diễn đàn Thuê Xe Tự Lái
+
+Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê xe vừa đăng bài cho thuê xe trên cùng một tài khoản.
+
+## ✨ Tính năng chính
+
+### 📋 Diễn đàn
+- Đăng bài viết cho thuê xe hoặc thảo luận
+- Xem danh sách bài viết với filter (danh mục, loại bài viết)
+- Tìm kiếm bài viết
+- Bình luận và reply trên bài viết
+- Quản lý bài viết của mình (sửa, xóa)
+
+### 🚙 Thuê xe
+- Xem thông tin xe trong bài viết
+- Đặt xe trực tiếp từ bài viết
+- Chọn ngày thuê, tự động tính tổng tiền
+- Kiểm tra trùng lịch đặt xe
+- Thanh toán online qua VNPAY
+- Đánh giá xe sau khi thuê
+
+### 👤 Tài khoản
+- Mỗi user có thể vừa thuê xe vừa đăng bài cho thuê
+- Không phân biệt khách hàng/chủ xe
+- Chỉ có 2 role: **user** và **admin**
+
+## 🛠️ Công nghệ
+
+- **Frontend**: HTML5, CSS3 (Pure CSS), JavaScript (Vanilla JS)
+- **Backend**: PHP 7.4+, MySQL 5.7+
+- **Payment**: VNPAY Sandbox
+- **Server**: Apache (mod_rewrite)
+
+## 📁 Cấu trúc thư mục
+
+```
+laptrinhweb/
+├── forum/              # Diễn đàn (MỚI)
+│   ├── index.php       # Danh sách bài viết
+│   ├── create-post.php # Đăng bài mới
+│   ├── post-detail.php # Chi tiết bài viết
+│   ├── edit-post.php   # Sửa bài viết
+│   ├── delete-post.php # Xóa bài viết
+│   └── my-posts.php    # Bài viết của tôi
+├── admin/              # Quản trị (Admin only)
+├── api/                # API thanh toán VNPAY
+├── auth/               # Đăng nhập, đăng ký
+├── client/             # Đặt xe, thanh toán, đánh giá
+├── config/             # Cấu hình database, session
+├── host/               # Quản lý xe (legacy, có thể dùng forum thay thế)
+├── includes/           # Header, footer
+├── uploads/            # Ảnh upload
+├── index.php           # Redirect đến forum
+└── schema.sql          # Database schema
+```
+
+## 🚀 Cài đặt trên XAMPP
+
+### Yêu cầu
+- XAMPP (PHP 7.4+, MySQL 5.7+)
+- Trình duyệt web hiện đại
+
+### Các bước
+
+1. **Copy project vào XAMPP**
+   - Copy folder vào: `C:\xampp\htdocs\webthuexe`
+
+2. **Start XAMPP**
+   - Mở XAMPP Control Panel
+   - Start **Apache** và **MySQL**
+
+3. **Import database**
+   - Mở phpMyAdmin: `http://localhost/phpmyadmin`
+   - Click tab **SQL** (hoặc **Import**)
+   - Copy toàn bộ nội dung file `schema.sql` và dán vào
+   - Click **Go** để chạy
+   - **Lưu ý**: File schema.sql sẽ xóa database cũ và tạo mới (nếu có dữ liệu cũ, hãy backup trước!)
+
+4. **Cấu hình database** (mặc định đã đúng cho XAMPP)
+   - Mở `config/database.php`
+   - Kiểm tra: `localhost`, `root`, không password
+   - Nếu đúng rồi thì không cần sửa
+
+5. **Truy cập website**
+   - Mở trình duyệt: `http://localhost/webthuexe`
+   - Sẽ tự động redirect đến diễn đàn
+
+### 📝 File SQL
+
+- **`schema.sql`** ✅ - **File SQL duy nhất cần dùng** (tạo database, bảng, dữ liệu mẫu)
+
+## 👤 Tài khoản demo
+
+| Username | Password | Role | Mô tả |
+|----------|----------|------|-------|
+| admin | 123456 | admin | Quản trị viên |
+| user1 | 123456 | user | User thường (có thể vừa thuê vừa đăng bài) |
+| user2 | 123456 | user | User thường |
+| user3 | 123456 | user | User thường |
+| user4 | 123456 | user | User thường |
+
+**Lưu ý**: Tất cả user (trừ admin) đều có thể vừa thuê xe vừa đăng bài cho thuê xe.
+
+## 🧪 Test thanh toán VNPAY
+
+Để test thanh toán: đăng nhập → tạo/xem bài viết cho thuê xe → đặt xe → thanh toán. Hệ thống sử dụng VNPAY Sandbox.
+
+**Thông tin thẻ test:**
+- Ngân hàng: NCB
+- Số thẻ: 9704198526191432198
+- Tên chủ thẻ: NGUYEN VAN A
+- Ngày phát hành: 07/15
+- Mã OTP: 123456
+
+## 📊 Database Schema
+
+### Bảng chính
+
+- **users**: Người dùng (role: user/admin)
+- **categories**: Danh mục bài viết
+- **posts**: Bài viết/thread (cho thuê xe hoặc thảo luận)
+- **comments**: Bình luận trên bài viết
+- **cars**: Thông tin xe (liên kết với bài viết qua post_id)
+- **bookings**: Đơn đặt xe
+- **payments**: Thanh toán
+- **reviews**: Đánh giá xe
+
+Xem chi tiết trong file `schema.sql`
+
+## 🔒 Bảo mật
+
+- ✅ Prepared Statements (SQL Injection prevention)
+- ✅ htmlspecialchars() (XSS prevention)
+- ✅ Password hashing (password_hash)
+- ✅ Session-based authentication
+- ✅ File upload validation
+- ✅ Role-based access control
+
+
+## 🎯 Tính năng nổi bật
+
+1. **Diễn đàn tích hợp**: Đăng bài viết cho thuê xe như một bài post trong diễn đàn
+2. **Dual role**: Mỗi user có thể vừa là người thuê vừa là người cho thuê
+3. **Bình luận**: Hỗ trợ bình luận và reply trên bài viết
+4. **Tích hợp booking**: Đặt xe trực tiếp từ bài viết
+5. **Thanh toán online**: Tích hợp VNPAY
+
+## 📞 Hỗ trợ
+
+Nếu gặp vấn đề:
+1. Kiểm tra log lỗi PHP
+2. Kiểm tra cấu hình database
+3. Kiểm tra quyền thư mục `uploads/`
+4. Đảm bảo đã import đúng schema.sql
+
+## 🚀 Phát triển tiếp
+
+Có thể thêm:
+- Thông báo real-time
+- Upload nhiều ảnh
+- Like/Dislike bài viết
+- Tag và hashtag
+- Tìm kiếm nâng cao
+- Email notifications
+- API RESTful
+
+---
+
+**License**: MIT  
+**Author**: [Your Name]  
+**Version**: 2.0 (Diễn đàn version)
