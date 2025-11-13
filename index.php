@@ -1,366 +1,320 @@
 <?php
 /**
- * Trang chủ - Giao diện BeeCar
+ * Trang chủ - Giao diện mới (Tailwind CSS)
  */
 require_once 'config/database.php';
 require_once 'config/session.php';
+require_once 'config/helpers.php';
 
 // Lấy base path
-$script_dir = dirname($_SERVER['SCRIPT_NAME']);
-$base_path = rtrim($script_dir, '/');
-if ($base_path === '\\' || $base_path === '') {
-    $base_path = '';
-} else {
-    $base_path = '/' . ltrim($base_path, '/');
+$base_path = getBasePath();
+
+// Lấy 8 xe nổi bật (từ database) - chỉ lấy xe có post_id
+$cars_query = "SELECT c.*, u.full_name, p.id as post_id, p.title as post_title
+               FROM cars c
+               JOIN users u ON c.owner_id = u.id
+               INNER JOIN posts p ON c.post_id = p.id
+               WHERE c.status = 'available' AND p.status = 'active'
+               ORDER BY c.created_at DESC
+               LIMIT 8";
+$cars_result = $conn->query($cars_query);
+$featured_cars = [];
+if ($cars_result && $cars_result->num_rows > 0) {
+    $featured_cars = $cars_result->fetch_all(MYSQLI_ASSOC);
 }
 
-if (empty($base_path) || $base_path === '/') {
-    $parts = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
-    if (!empty($parts[0])) {
-        $base_path = '/' . $parts[0];
-    } else {
-    $base_path = '';
-}
-}
+// Địa điểm nổi bật
+$popular_locations = [
+    ['code' => 'hcm', 'name' => 'TP. Hồ Chí Minh'],
+    ['code' => 'hanoi', 'name' => 'Hà Nội'],
+    ['code' => 'danang', 'name' => 'Đà Nẵng'],
+    ['code' => 'dalat', 'name' => 'Đà Lạt']
+];
 ?>
 <!DOCTYPE html>
-<html lang="vi">
+<html class="light" lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thuê Xe Tự Lái - Cùng Bạn Trên Mọi Hành Trình</title>
-    <link rel="stylesheet" href="<?php echo $base_path ? $base_path . '/assets/css/style.css' : 'assets/css/style.css'; ?>">
-    <style>
-        /* Hero section background image - fix đường dẫn từ root */
-        main.hero-section {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.5) 100%),
-                        url('<?php echo $base_path ? $base_path . '/images/hinh1.jpg' : 'images/hinh1.jpg'; ?>') no-repeat center center/cover !important;
-            background-blend-mode: multiply !important;
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>CarRental - Hành trình của bạn, lựa chọn của bạn</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f98006",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
         }
-        
-        /* Highlight số 10.000 */
-        .hero-subtitle strong {
-            color: #00ff88 !important;
-            font-weight: bold;
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
     </style>
 </head>
-<body>
-
-    <header class="main-header">
-        <div class="logo">
-            <a href="<?php echo $base_path ? $base_path . '/index.php' : 'index.php'; ?>" style="text-decoration: none; color: inherit;">🚗 THUÊ XE</a>
-        </div>
-        <nav class="nav-links">
-            <a href="<?php echo $base_path ? $base_path . '/forum/create-post.php' : 'forum/create-post.php'; ?>">Trở thành Chủ Xe</a>
-            <a href="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>">Diễn đàn</a>
-            <?php if (isLoggedIn()): ?>
-                <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>">Chuyến của tôi</a>
-            <?php endif; ?>
-        </nav>
-        <div class="user-actions">
-            <?php if (isLoggedIn()): ?>
-                <div class="user-menu" style="display: inline-block; position: relative;">
-                    <button class="btn btn-login" style="margin-right: 8px;">
-                        <?php echo htmlspecialchars($_SESSION['full_name'] ?: $_SESSION['username']); ?> ▼
-                    </button>
-                    <div class="user-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; padding: 0.5rem 0; min-width: 200px; margin-top: 0.5rem; z-index: 1000;">
-                        <a href="<?php echo $base_path ? $base_path . '/forum/my-posts.php' : 'forum/my-posts.php'; ?>" style="display: block; padding: 0.75rem 1.5rem; color: #333; text-decoration: none;">Bài viết của tôi</a>
-                        <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" style="display: block; padding: 0.75rem 1.5rem; color: #333; text-decoration: none;">Đơn đặt của tôi</a>
-                        <?php if (hasRole('admin')): ?>
-                            <a href="<?php echo $base_path ? $base_path . '/admin/dashboard.php' : 'admin/dashboard.php'; ?>" style="display: block; padding: 0.75rem 1.5rem; color: #333; text-decoration: none;">Quản trị</a>
-                        <?php endif; ?>
-                        <a href="<?php echo $base_path ? $base_path . '/auth/logout.php' : 'auth/logout.php'; ?>" style="display: block; padding: 0.75rem 1.5rem; color: #333; text-decoration: none;">Đăng xuất</a>
-                    </div>
-                </div>
-            <?php else: ?>
-                <a href="<?php echo $base_path ? $base_path . '/auth/login.php' : 'auth/login.php'; ?>" class="btn btn-login">Đăng nhập</a>
-                <a href="<?php echo $base_path ? $base_path . '/auth/register.php' : 'auth/register.php'; ?>" class="btn btn-signup">Đăng ký</a>
-            <?php endif; ?>
-        </div>
-    </header>
-
-    <main class="hero-section">
-        <div class="hero-content-wrapper">
-            <h1 class="hero-title">Thuê Xe Tự Lái - Cùng Bạn Trên Mọi Hành Trình</h1>
-            <p class="hero-subtitle">Trải nghiệm sự khác biệt từ hơn <strong>10.000</strong> xe gia đình đời mới khắp Việt Nam</p>
-            
-            <div class="service-selector">
-                <button type="button" class="btn btn-service active" data-service="self-drive">Xe tự lái</button>
-                <button type="button" class="btn btn-service" data-service="with-driver">Xe có tài xế</button>
-                <button type="button" class="btn btn-service" data-service="long-term">Thuê xe dài hạn</button>
-            </div>
-        </div>
-    </main>
-
-    <section class="content-section promo-search-wrapper">
-        <form method="GET" action="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>" style="margin: 0;" id="search-form">
-            <input type="hidden" name="type" value="rental" id="search-type">
-            <input type="hidden" name="location" id="hidden-location" value="hcm">
-            <div class="detailed-search-box">
-                <div class="search-input location" id="location-selector" style="cursor: pointer;">
-                    <label>Địa điểm</label>
-                    <p id="location-display" style="margin: 0; font-size: 1em; font-weight: bold; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                        <span>TP. Hồ Chí Minh</span>
-                        <span style="font-size: 0.8em;">▼</span>
-                    </p>
-                </div>
-                <div class="search-input datetime">
-                    <label>Thời gian thuê</label>
-                    <p style="margin: 0; font-size: 1em; font-weight: bold; color: var(--text-color); cursor: pointer;">21:00, 12/11/2025 - 20:00, 13/11/2025</p>
-                    <input type="hidden" name="rental-time" value="21:00, 12/11/2025 - 20:00, 13/11/2025">
-                </div>
-                <button type="button" class="btn btn-search-detail" id="btn-open-search-modal">Tìm Xe</button>
-            </div>
-        </form>
-    </section>
-
-    <!-- Modal tìm kiếm nâng cao -->
-    <div id="search-modal" class="search-modal" style="display: none;">
-        <div class="search-modal-content">
-            <div class="search-modal-header">
-                <h3>Tìm kiếm</h3>
-                <span class="search-modal-close">&times;</span>
-            </div>
-            <form id="advanced-search-form" method="GET" action="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>">
-                <input type="hidden" name="type" value="rental">
-                <div class="search-modal-body">
-                    <!-- Địa điểm -->
-                    <div class="search-section">
-                        <div class="section-header">
-                            <label class="section-label">Địa điểm</label>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#181411] dark:text-white">
+    <div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+        <div class="layout-container flex h-full grow flex-col">
+            <div class="flex flex-1 justify-center py-5">
+                <div class="layout-content-container flex flex-col w-full max-w-6xl flex-1">
+                    <!-- Header -->
+                    <?php include 'includes/header.php'; ?>
+                    
+                    <!-- Main Content -->
+                    <main class="flex-1">
+                        <!-- Hero Section -->
+                        <div class="px-4 md:px-0">
+                            <div class="p-0 md:p-4">
+                                <div class="flex min-h-[480px] flex-col gap-6 bg-cover bg-center bg-no-repeat md:gap-8 md:rounded-xl items-center justify-center p-4 text-center" 
+                                     style='background-image: linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%), url("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80");'>
+                                    <div class="flex flex-col gap-2">
+                                        <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em] md:text-5xl">
+                                            Hành trình của bạn, lựa chọn của bạn
+                                        </h1>
+                                        <h2 class="text-white text-sm font-normal leading-normal md:text-base">
+                                            Khám phá hàng ngàn chiếc xe cho mọi chuyến đi. Thuê xe tự lái &amp; có tài xế một cách dễ dàng, an toàn và tiết kiệm.
+                                        </h2>
+                                    </div>
+                                    <label class="flex flex-col min-w-40 h-14 w-full max-w-[480px] md:h-16">
+                                        <div class="flex w-full flex-1 items-stretch rounded-lg h-full shadow-lg">
+                                            <div class="text-primary flex border border-[#e6e0db] bg-white items-center justify-center pl-[15px] rounded-l-lg border-r-0">
+                                                <span class="material-symbols-outlined">search</span>
+                                            </div>
+                                            <input type="text" 
+                                                   id="location-search-input" 
+                                                   class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-[#181411] focus:outline-0 focus:ring-0 border border-[#e6e0db] bg-white focus:border-primary h-full placeholder:text-[#8c755f] px-[15px] border-r-0 border-l-0 text-sm font-normal leading-normal md:text-base" 
+                                                   placeholder="Nhập địa điểm bạn muốn thuê xe" 
+                                                   value=""
+                                                   onclick="openSearchModal()"/>
+                                            <div class="flex items-center justify-center rounded-r-lg border-l-0 border border-[#e6e0db] bg-white pr-[7px]">
+                                                <button type="button" 
+                                                        class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 md:h-12 md:px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] md:text-base"
+                                                        onclick="openSearchModal()">
+                                                    <span class="truncate">Tìm xe</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="location-search-wrapper">
-                            <div class="location-search-input">
-                                <input type="text" id="location-search" placeholder="Nhập địa điểm, sân bay, ga, bến xe..." autocomplete="off">
-                                <button type="button" class="btn-current-location" id="btn-current-location" title="Sử dụng vị trí hiện tại">
+                        
+                        <!-- Featured Cars Section -->
+                        <section class="py-10">
+                            <h2 class="text-[#181411] dark:text-gray-200 text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Dòng xe nổi bật</h2>
+                            <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 px-4">
+                                <?php if (!empty($featured_cars)): ?>
+                                    <?php foreach ($featured_cars as $car): ?>
+                                        <?php if (!empty($car['post_id'])): ?>
+                                            <a href="<?php echo $base_path ? $base_path . '/forum/post-detail.php?id=' . $car['post_id'] : 'forum/post-detail.php?id=' . $car['post_id']; ?>" 
+                                               class="flex flex-col gap-3 pb-3 group">
+                                                <div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" 
+                                                     style='background-image: url("<?php echo $base_path ? $base_path . '/uploads/' : 'uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>");'
+                                                     onerror="this.style.backgroundImage='url(<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : 'uploads/default-car.jpg'; ?>)'">
+                                                </div>
+                                                <div>
+                                                    <p class="text-[#181411] dark:text-white text-base font-medium leading-normal"><?php echo htmlspecialchars($car['name']); ?></p>
+                                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm font-normal leading-normal">
+                                                        Từ <?php echo number_format($car['price_per_day']); ?>đ/ngày
+                                                    </p>
+                                                </div>
+                                            </a>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="col-span-full text-center py-8">
+                                        <p class="text-gray-500">Chưa có xe nào được đăng.</p>
+                                        <?php if (isLoggedIn()): ?>
+                                            <a href="<?php echo $base_path ? $base_path . '/forum/create-post.php' : 'forum/create-post.php'; ?>" 
+                                               class="text-primary hover:underline mt-2 inline-block">Đăng xe đầu tiên</a>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </section>
+                        
+                        <!-- Popular Locations Section -->
+                        <section class="py-10 bg-white dark:bg-background-dark/30">
+                            <h2 class="text-[#181411] dark:text-gray-200 text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Khám phá các điểm đến hàng đầu</h2>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
+                                <?php foreach ($popular_locations as $loc): ?>
+                                    <a href="<?php echo $base_path ? $base_path . '/forum/index.php?type=rental&location=' . $loc['code'] : 'forum/index.php?type=rental&location=' . $loc['code']; ?>" 
+                                       class="relative overflow-hidden rounded-lg group">
+                                        <div class="w-full bg-center bg-no-repeat aspect-square bg-cover transition-transform duration-300 group-hover:scale-110" 
+                                             style='background-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent), url("https://images.unsplash.com/photo-1539650116574-75c0c6d73aa0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80");'>
+                                        </div>
+                                        <p class="absolute bottom-4 left-4 text-white text-lg font-bold"><?php echo htmlspecialchars($loc['name']); ?></p>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+                        
+                        <!-- Why Choose Us Section -->
+                        <section class="py-16 px-4 text-center">
+                            <h2 class="text-[#181411] dark:text-gray-200 text-2xl font-bold leading-tight tracking-[-0.015em] mb-2">Tại sao chọn chúng tôi?</h2>
+                            <p class="text-[#8c755f] dark:text-gray-400 max-w-2xl mx-auto mb-12">Trải nghiệm thuê xe an toàn, tiện lợi và minh bạch với những lợi ích vượt trội.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="flex items-center justify-center size-16 bg-primary/20 text-primary rounded-full">
+                                        <span class="material-symbols-outlined text-4xl">verified_user</span>
+                                    </div>
+                                    <h3 class="text-[#181411] dark:text-white text-lg font-bold">Bảo hiểm toàn diện</h3>
+                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm">An tâm trên mọi hành trình với các gói bảo hiểm uy tín từ đối tác hàng đầu.</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="flex items-center justify-center size-16 bg-primary/20 text-primary rounded-full">
+                                        <span class="material-symbols-outlined text-4xl">description</span>
+                                    </div>
+                                    <h3 class="text-[#181411] dark:text-white text-lg font-bold">Thủ tục đơn giản</h3>
+                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm">Hoàn tất thuê xe chỉ với vài bước đơn giản, không cần giấy tờ phức tạp.</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="flex items-center justify-center size-16 bg-primary/20 text-primary rounded-full">
+                                        <span class="material-symbols-outlined text-4xl">local_shipping</span>
+                                    </div>
+                                    <h3 class="text-[#181411] dark:text-white text-lg font-bold">Giao xe tận nơi</h3>
+                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm">Nhận và trả xe tại địa điểm bạn yêu cầu, tiết kiệm thời gian di chuyển.</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="flex items-center justify-center size-16 bg-primary/20 text-primary rounded-full">
+                                        <span class="material-symbols-outlined text-4xl">support_agent</span>
+                                    </div>
+                                    <h3 class="text-[#181411] dark:text-white text-lg font-bold">Hỗ trợ 24/7</h3>
+                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm">Đội ngũ hỗ trợ luôn sẵn sàng giải đáp mọi thắc mắc của bạn trên suốt hành trình.</p>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" onclick="closeSearchModal(event)">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-bold text-[#181411] dark:text-white">Tìm kiếm</h3>
+                <button type="button" onclick="closeSearchModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="advanced-search-form" method="GET" action="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>" class="p-6">
+                <input type="hidden" name="type" value="rental">
+                <div class="space-y-6">
+                    <!-- Địa điểm -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-3 text-[#181411] dark:text-white">Địa điểm</label>
+                        <div class="space-y-3">
+                            <div class="flex gap-2">
+                                <input type="text" 
+                                       id="location-search" 
+                                       placeholder="Nhập địa điểm, sân bay, ga, bến xe..." 
+                                       autocomplete="off"
+                                       class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:text-white">
+                                <button type="button" 
+                                        id="btn-current-location" 
+                                        class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                                     Vị trí hiện tại
                                 </button>
                             </div>
-                            <div class="location-suggestions" id="location-suggestions" style="display: none;">
-                                <div class="suggestion-header">Đề xuất</div>
-                                <div class="suggestion-list" id="suggestion-list">
-                                    <!-- Sẽ được populate bằng JavaScript -->
+                            <div id="location-suggestions" class="hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 max-h-48 overflow-y-auto">
+                                <div class="p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">Đề xuất</div>
+                                <div id="suggestion-list" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <!-- Populated by JavaScript -->
                                 </div>
                             </div>
-                            <div class="location-selected" id="location-selected">
+                            <div id="location-selected" class="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
                                 <input type="hidden" name="location" id="selected-location" value="hcm">
-                                <span id="selected-location-name">TP. Hồ Chí Minh</span>
+                                <span id="selected-location-name" class="text-primary font-medium">TP. Hồ Chí Minh</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Theo nhu cầu -->
-                    <div class="search-section">
-                        <div class="section-header">
-                            <label class="section-label">Theo nhu cầu</label>
-                        </div>
-                        <div class="filter-options">
-                            <button type="button" class="filter-option" data-filter="need" data-value="new-driver">
-                                Lái mới
-                            </button>
-                            <button type="button" class="filter-option" data-filter="need" data-value="work-commute">
-                                Công việc, đi lại
-                            </button>
-                            <button type="button" class="filter-option" data-filter="need" data-value="family">
-                                Gia đình
-                            </button>
-                            <button type="button" class="filter-option" data-filter="need" data-value="camping">
-                                Cắm trại, chở đồ
-                            </button>
-                            <button type="button" class="filter-option" data-filter="need" data-value="friends">
-                                Nhóm bạn
-                            </button>
-                            <button type="button" class="filter-option" data-filter="need" data-value="party">
-                                Tiếp khách, dự tiệc
-                            </button>
+                    <div>
+                        <label class="block text-sm font-semibold mb-3 text-[#181411] dark:text-white">Theo nhu cầu</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="new-driver">Lái mới</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="work-commute">Công việc, đi lại</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="family">Gia đình</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="camping">Cắm trại, chở đồ</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="friends">Nhóm bạn</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="party">Tiếp khách, dự tiệc</button>
                         </div>
                         <input type="hidden" name="needs" id="selected-needs" value="">
                     </div>
 
                     <!-- Theo xu hướng -->
-                    <div class="search-section">
-                        <div class="section-header">
-                            <label class="section-label">Theo xu hướng</label>
-                        </div>
-                        <div class="filter-options">
-                            <button type="button" class="filter-option" data-filter="trend" data-value="electric">
-                                Xe điện
-                            </button>
-                            <button type="button" class="filter-option" data-filter="trend" data-value="hybrid">
-                                Xe hybrid
-                            </button>
-                            <button type="button" class="filter-option" data-filter="trend" data-value="sports">
-                                Xe thể thao
-                            </button>
+                    <div>
+                        <label class="block text-sm font-semibold mb-3 text-[#181411] dark:text-white">Theo xu hướng</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="trend" data-value="electric">Xe điện</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="trend" data-value="hybrid">Xe hybrid</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="trend" data-value="sports">Xe thể thao</button>
                         </div>
                         <input type="hidden" name="trends" id="selected-trends" value="">
                     </div>
 
                     <!-- Ngân sách -->
-                    <div class="search-section">
-                        <div class="section-header">
-                            <label class="section-label">Ngân sách</label>
-                        </div>
-                        <div class="filter-options">
-                            <button type="button" class="filter-option" data-filter="budget" data-value="cheap">
-                                Giá rẻ
-                            </button>
-                            <button type="button" class="filter-option" data-filter="budget" data-value="economical">
-                                Tiết kiệm
-                            </button>
+                    <div>
+                        <label class="block text-sm font-semibold mb-3 text-[#181411] dark:text-white">Ngân sách</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="budget" data-value="cheap">Giá rẻ</button>
+                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="budget" data-value="economical">Tiết kiệm</button>
                         </div>
                         <input type="hidden" name="budgets" id="selected-budgets" value="">
                     </div>
                 </div>
-                <div class="search-modal-footer">
-                    <button type="button" class="btn-clear-filters" id="btn-clear-filters">Xóa bộ lọc</button>
-                    <button type="submit" class="btn-search-submit">Tìm xe</button>
+                <div class="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" 
+                            id="btn-clear-filters" 
+                            class="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Xóa bộ lọc
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-bold">
+                        Tìm xe
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-
-    <section class="content-section promotion-section">
-        <h2 class="section-title">Chương Trình Khuyến Mãi</h2>
-        <p class="section-subtitle">Nhận nhiều ưu đãi hấp dẫn từ chúng tôi</p>
-        
-            <div class="grid-container promo-cards">
-                <div class="promo-card">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎁</div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #333;">Giảm 20% cho khách hàng mới</h3>
-                    <p style="color: #666; font-size: 0.95rem;">Áp dụng cho lần thuê đầu tiên</p>
-                </div>
-                <div class="promo-card">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">⭐</div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #333;">Thuê 3 ngày tặng 1 ngày</h3>
-                    <p style="color: #666; font-size: 0.95rem;">Áp dụng cho tất cả loại xe</p>
-                </div>
-                <div class="promo-card">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">💳</div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #333;">Thanh toán online giảm 5%</h3>
-                    <p style="color: #666; font-size: 0.95rem;">Khi thanh toán qua VNPAY</p>
-                </div>
-            </div>
-    </section>
-
-    <!-- Featured Cars Section -->
-    <section class="content-section" style="background-color: #f7f7f7;">
-        <h2 class="section-title">Xe Nổi Bật</h2>
-        <p class="section-subtitle">Những chiếc xe được yêu thích nhất</p>
-        
-        <div class="grid-container">
-            <?php
-            // Lấy 6 xe nổi bật
-            $cars_query = "SELECT c.*, u.full_name, p.id as post_id, p.title as post_title
-                           FROM cars c
-                           JOIN users u ON c.owner_id = u.id
-                           LEFT JOIN posts p ON c.post_id = p.id
-                           WHERE c.status = 'available'
-                           ORDER BY c.created_at DESC
-                           LIMIT 6";
-            $cars_result = $conn->query($cars_query);
-            
-            if ($cars_result && $cars_result->num_rows > 0):
-                while ($car = $cars_result->fetch_assoc()):
-            ?>
-            <div class="car-card">
-                <div style="width: 100%; height: 200px; overflow: hidden; background: #f0f0f0;">
-                    <img src="<?php echo $base_path ? $base_path . '/uploads/' : 'uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>" 
-                         alt="<?php echo htmlspecialchars($car['name']); ?>"
-                         style="width: 100%; height: 100%; object-fit: cover;"
-                         onerror="this.src='<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : 'uploads/default-car.jpg'; ?>'">
-                </div>
-                <div style="padding: 1.5rem;">
-                    <h3 style="margin-bottom: 0.5rem; color: #333; font-size: 1.3rem;"><?php echo htmlspecialchars($car['name']); ?></h3>
-                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">Chủ xe: <?php echo htmlspecialchars($car['full_name']); ?></p>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                        <span style="background: #f0f0f0; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; color: #666;"><?php echo htmlspecialchars($car['car_type']); ?></span>
-                        <span style="font-size: 1.2rem; font-weight: bold; color: var(--beecar-purple);"><?php echo number_format($car['price_per_day']); ?> đ/ngày</span>
-                    </div>
-                    <?php if ($car['post_id']): ?>
-                        <a href="<?php echo $base_path ? $base_path . '/forum/post-detail.php?id=' : 'forum/post-detail.php?id='; ?><?php echo $car['post_id']; ?>" 
-                           class="btn btn-signup" style="display: block; text-align: center; text-decoration: none; width: 100%;">Xem chi tiết</a>
-                    <?php else: ?>
-                        <a href="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>" 
-                           class="btn btn-signup" style="display: block; text-align: center; text-decoration: none; width: 100%;">Xem chi tiết</a>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php
-                endwhile;
-            else:
-            ?>
-            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                <p>Chưa có xe nào được đăng. <a href="<?php echo $base_path ? $base_path . '/forum/create-post.php' : 'forum/create-post.php'; ?>">Đăng xe đầu tiên</a></p>
-            </div>
-            <?php endif; ?>
-        </div>
-        
-        <div style="text-align: center; margin-top: 2rem;">
-            <a href="<?php echo $base_path ? $base_path . '/forum/index.php?type=rental' : 'forum/index.php?type=rental'; ?>" 
-               class="btn btn-login" style="padding: 1rem 2.5rem; text-decoration: none;">Xem tất cả xe</a>
-        </div>
-    </section>
-    
-    <footer class="main-footer">
-        <p>&copy; 2025 Thuê Xe Tự Lái Online. Tất cả quyền được bảo lưu.</p>
-        <p style="margin-top: 0.5rem;">Liên hệ: contact@carrental.com | Hotline: 1900-xxxx</p>
-    </footer>
     
     <script>
-        // Service selector
-        document.querySelectorAll('.btn-service').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelectorAll('.btn-service').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                const service = this.getAttribute('data-service');
-                const searchTypeInput = document.getElementById('search-type');
-                if (searchTypeInput) {
-                    searchTypeInput.value = service === 'self-drive' ? 'rental' : service;
-                }
-            });
-        });
+        // Search Modal Functions
+        function openSearchModal() {
+            document.getElementById('search-modal').classList.remove('hidden');
+            document.getElementById('search-modal').classList.add('flex');
+        }
         
-        // User menu dropdown
-        const userMenu = document.querySelector('.user-menu');
-        if (userMenu) {
-            const userButton = userMenu.querySelector('.btn-login');
-            const userDropdown = userMenu.querySelector('.user-dropdown');
-            
-            if (userButton && userDropdown) {
-                userButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    userDropdown.style.display = userDropdown.style.display === 'none' || userDropdown.style.display === '' ? 'block' : 'none';
-                });
+        function closeSearchModal(event) {
+            if (!event || event.target === event.currentTarget || event.target.closest('.material-symbols-outlined')) {
+                document.getElementById('search-modal').classList.add('hidden');
+                document.getElementById('search-modal').classList.remove('flex');
             }
         }
         
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.user-menu')) {
-                document.querySelectorAll('.user-dropdown').forEach(dropdown => {
-                    dropdown.style.display = 'none';
-                });
-            }
-        });
-        
-        // Search Modal - Modal tìm kiếm nâng cao
-        const locationSelector = document.getElementById('location-selector');
-        const searchModal = document.getElementById('search-modal');
-        const locationDisplay = document.getElementById('location-display');
-        const searchModalClose = document.querySelector('.search-modal-close');
-        const locationSearch = document.getElementById('location-search');
-        const btnCurrentLocation = document.getElementById('btn-current-location');
-        const locationSuggestions = document.getElementById('location-suggestions');
-        const suggestionList = document.getElementById('suggestion-list');
-        const selectedLocation = document.getElementById('selected-location');
-        const selectedLocationName = document.getElementById('selected-location-name');
-        const filterOptions = document.querySelectorAll('.filter-option');
-        const btnClearFilters = document.getElementById('btn-clear-filters');
-        
-        // Dữ liệu địa điểm và đề xuất
+        // Location data
         const locations = {
             'hcm': 'TP. Hồ Chí Minh',
             'hanoi': 'Hà Nội',
@@ -376,119 +330,106 @@ if (empty($base_path) || $base_path === '/') {
             'hoian': 'Hội An'
         };
         
-        // Đề xuất sân bay, ga, bến xe
         const suggestions = {
             'hcm': [
                 { name: 'Sân bay Tân Sơn Nhất', type: 'airport' },
                 { name: 'Ga Sài Gòn', type: 'station' },
                 { name: 'Bến xe Miền Đông', type: 'bus' },
-                { name: 'Bến xe Miền Tây', type: 'bus' },
-                { name: 'Bến Bạch Đằng', type: 'port' }
+                { name: 'Bến xe Miền Tây', type: 'bus' }
             ],
             'hanoi': [
                 { name: 'Sân bay Nội Bài', type: 'airport' },
                 { name: 'Ga Hà Nội', type: 'station' },
                 { name: 'Bến xe Giáp Bát', type: 'bus' },
-                { name: 'Bến xe Mỹ Đình', type: 'bus' },
-                { name: 'Bến xe Nước Ngầm', type: 'bus' }
+                { name: 'Bến xe Mỹ Đình', type: 'bus' }
             ],
             'danang': [
                 { name: 'Sân bay Đà Nẵng', type: 'airport' },
                 { name: 'Ga Đà Nẵng', type: 'station' },
                 { name: 'Bến xe Đà Nẵng', type: 'bus' }
-            ],
-            'nhatrang': [
-                { name: 'Sân bay Cam Ranh', type: 'airport' },
-                { name: 'Ga Nha Trang', type: 'station' },
-                { name: 'Bến xe Nha Trang', type: 'bus' }
-            ],
-            'dalat': [
-                { name: 'Sân bay Liên Khương', type: 'airport' },
-                { name: 'Bến xe Đà Lạt', type: 'bus' }
-            ],
-            'haiphong': [
-                { name: 'Sân bay Cát Bi', type: 'airport' },
-                { name: 'Ga Hải Phòng', type: 'station' },
-                { name: 'Bến xe Hải Phòng', type: 'bus' }
-            ],
-            'cantho': [
-                { name: 'Sân bay Cần Thơ', type: 'airport' },
-                { name: 'Bến xe Cần Thơ', type: 'bus' }
-            ],
-            'vungtau': [
-                { name: 'Bến xe Vũng Tàu', type: 'bus' },
-                { name: 'Cảng Vũng Tàu', type: 'port' }
-            ],
-            'phuquoc': [
-                { name: 'Sân bay Phú Quốc', type: 'airport' },
-                { name: 'Bến tàu Phú Quốc', type: 'port' }
-            ],
-            'hue': [
-                { name: 'Sân bay Phú Bài', type: 'airport' },
-                { name: 'Ga Huế', type: 'station' },
-                { name: 'Bến xe Huế', type: 'bus' }
-            ],
-            'quynhon': [
-                { name: 'Sân bay Phù Cát', type: 'airport' },
-                { name: 'Ga Quy Nhon', type: 'station' },
-                { name: 'Bến xe Quy Nhon', type: 'bus' }
-            ],
-            'hoian': [
-                { name: 'Bến xe Hội An', type: 'bus' }
             ]
         };
         
-        // Mở modal khi click vào địa điểm hoặc nút Tìm Xe
-        const btnOpenSearchModal = document.getElementById('btn-open-search-modal');
-        if (btnOpenSearchModal && searchModal) {
-            btnOpenSearchModal.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                searchModal.style.display = 'flex';
-                if (selectedLocation) {
-                    updateSuggestions(selectedLocation.value);
-                }
-            });
+        // Location search
+        const locationSearch = document.getElementById('location-search');
+        const locationSuggestions = document.getElementById('location-suggestions');
+        const suggestionList = document.getElementById('suggestion-list');
+        const selectedLocation = document.getElementById('selected-location');
+        const selectedLocationName = document.getElementById('selected-location-name');
+        const btnCurrentLocation = document.getElementById('btn-current-location');
+        
+        function updateSuggestions(locationCode) {
+            if (suggestions[locationCode]) {
+                suggestionList.innerHTML = '';
+                suggestions[locationCode].forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                    div.innerHTML = `<span>${item.name}</span>`;
+                    div.addEventListener('click', function() {
+                        setLocation(locationCode, item.name);
+                        locationSearch.value = item.name;
+                        locationSuggestions.classList.add('hidden');
+                    });
+                    suggestionList.appendChild(div);
+                });
+                locationSuggestions.classList.remove('hidden');
+            } else {
+                locationSuggestions.classList.add('hidden');
+            }
         }
         
-        if (locationSelector && searchModal) {
-            locationSelector.addEventListener('click', function(e) {
-                e.stopPropagation();
-                searchModal.style.display = 'flex';
-                if (selectedLocation) {
-                    updateSuggestions(selectedLocation.value);
-                }
-            });
+        function setLocation(code, name) {
+            selectedLocation.value = code;
+            selectedLocationName.textContent = name;
+            updateSuggestions(code);
         }
         
-        // Đóng modal
-        if (searchModalClose) {
-            searchModalClose.addEventListener('click', function() {
-                searchModal.style.display = 'none';
-            });
-        }
-        
-        if (searchModal) {
-            searchModal.addEventListener('click', function(e) {
-                if (e.target === searchModal) {
-                    searchModal.style.display = 'none';
-                }
-            });
-        }
-        
-        // Tìm kiếm địa điểm
         if (locationSearch) {
             locationSearch.addEventListener('input', function() {
                 const query = this.value.toLowerCase().trim();
                 if (query.length > 0) {
                     showLocationSearchResults(query);
                 } else {
-                    locationSuggestions.style.display = 'none';
+                    locationSuggestions.classList.add('hidden');
                 }
             });
         }
         
-        // Vị trí hiện tại
+        function showLocationSearchResults(query) {
+            const results = [];
+            Object.keys(locations).forEach(code => {
+                if (locations[code].toLowerCase().includes(query)) {
+                    results.push({ code: code, name: locations[code], type: 'city' });
+                }
+            });
+            Object.keys(suggestions).forEach(code => {
+                suggestions[code].forEach(item => {
+                    if (item.name.toLowerCase().includes(query)) {
+                        results.push({ code: code, name: item.name, type: item.type });
+                    }
+                });
+            });
+            
+            suggestionList.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                    div.innerHTML = `<span>${result.name}</span>`;
+                    div.addEventListener('click', function() {
+                        setLocation(result.code, result.name);
+                        locationSearch.value = result.name;
+                        locationSuggestions.classList.add('hidden');
+                    });
+                    suggestionList.appendChild(div);
+                });
+                locationSuggestions.classList.remove('hidden');
+            } else {
+                locationSuggestions.classList.add('hidden');
+            }
+        }
+        
+        // Current location
         if (btnCurrentLocation) {
             btnCurrentLocation.addEventListener('click', function() {
                 if (navigator.geolocation) {
@@ -496,9 +437,6 @@ if (empty($base_path) || $base_path === '/') {
                     this.disabled = true;
                     navigator.geolocation.getCurrentPosition(
                         function(position) {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            // Giả sử tìm địa điểm gần nhất (có thể tích hợp API geocoding)
                             setLocation('hcm', 'Vị trí hiện tại');
                             btnCurrentLocation.textContent = 'Vị trí hiện tại';
                             btnCurrentLocation.disabled = false;
@@ -515,106 +453,41 @@ if (empty($base_path) || $base_path === '/') {
             });
         }
         
-        // Cập nhật đề xuất
-        function updateSuggestions(locationCode) {
-            if (suggestions[locationCode]) {
-                suggestionList.innerHTML = '';
-                suggestions[locationCode].forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    div.innerHTML = `<span class="suggestion-text">${item.name}</span>`;
-                    div.addEventListener('click', function() {
-                        setLocation(locationCode, item.name);
-                        locationSearch.value = item.name;
-                        locationSuggestions.style.display = 'none';
-                    });
-                    suggestionList.appendChild(div);
-                });
-                locationSuggestions.style.display = 'block';
-            } else {
-                locationSuggestions.style.display = 'none';
-            }
-        }
-        
-        // Hiển thị kết quả tìm kiếm địa điểm
-        function showLocationSearchResults(query) {
-            const results = [];
-            // Tìm trong danh sách thành phố
-            Object.keys(locations).forEach(code => {
-                if (locations[code].toLowerCase().includes(query)) {
-                    results.push({ code: code, name: locations[code], type: 'city' });
-                }
-            });
-            // Tìm trong đề xuất
-            Object.keys(suggestions).forEach(code => {
-                suggestions[code].forEach(item => {
-                    if (item.name.toLowerCase().includes(query)) {
-                        results.push({ code: code, name: item.name, type: item.type });
-                    }
-                });
-            });
-            
-            suggestionList.innerHTML = '';
-            if (results.length > 0) {
-                results.forEach(result => {
-                    const div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    div.innerHTML = `<span class="suggestion-text">${result.name}</span>`;
-                    div.addEventListener('click', function() {
-                        setLocation(result.code, result.name);
-                        locationSearch.value = result.name;
-                        locationSuggestions.style.display = 'none';
-                    });
-                    suggestionList.appendChild(div);
-                });
-                locationSuggestions.style.display = 'block';
-            } else {
-                locationSuggestions.style.display = 'none';
-            }
-        }
-        
-        // Set location
-        function setLocation(code, name) {
-            selectedLocation.value = code;
-            selectedLocationName.textContent = name;
-            if (locationDisplay) {
-                locationDisplay.querySelector('span').textContent = name;
-            }
-            updateSuggestions(code);
-        }
-        
-        // Filter options - chọn nhiều
+        // Filter options
         const selectedFilters = {
             need: [],
             trend: [],
             budget: []
         };
         
-        filterOptions.forEach(option => {
+        document.querySelectorAll('.filter-option').forEach(option => {
             option.addEventListener('click', function() {
                 const filter = this.getAttribute('data-filter');
                 const value = this.getAttribute('data-value');
                 
                 if (this.classList.contains('active')) {
                     this.classList.remove('active');
+                    this.classList.remove('border-primary', 'bg-primary/20');
                     selectedFilters[filter] = selectedFilters[filter].filter(v => v !== value);
                 } else {
                     this.classList.add('active');
+                    this.classList.add('border-primary', 'bg-primary/20');
                     selectedFilters[filter].push(value);
                 }
                 
-                // Cập nhật hidden inputs
                 document.getElementById('selected-needs').value = selectedFilters.need.join(',');
                 document.getElementById('selected-trends').value = selectedFilters.trend.join(',');
                 document.getElementById('selected-budgets').value = selectedFilters.budget.join(',');
             });
         });
         
-        // Xóa bộ lọc
+        // Clear filters
+        const btnClearFilters = document.getElementById('btn-clear-filters');
         if (btnClearFilters) {
             btnClearFilters.addEventListener('click', function() {
-                filterOptions.forEach(option => {
+                document.querySelectorAll('.filter-option').forEach(option => {
                     option.classList.remove('active');
+                    option.classList.remove('border-primary', 'bg-primary/20');
                 });
                 selectedFilters.need = [];
                 selectedFilters.trend = [];
@@ -624,18 +497,11 @@ if (empty($base_path) || $base_path === '/') {
                 document.getElementById('selected-budgets').value = '';
                 setLocation('hcm', 'TP. Hồ Chí Minh');
                 locationSearch.value = '';
-                locationSuggestions.style.display = 'none';
-            });
-        }
-        
-        // Cập nhật đề xuất khi mở modal
-        if (searchModal) {
-            searchModal.addEventListener('click', function(e) {
-                if (e.target === searchModal || e.target.closest('.search-modal-content')) {
-                    updateSuggestions(selectedLocation.value);
-                }
+                locationSuggestions.classList.add('hidden');
             });
         }
     </script>
+    
+    <?php include 'includes/footer.php'; ?>
 </body>
 </html>
