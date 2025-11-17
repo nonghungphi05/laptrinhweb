@@ -4,13 +4,6 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 
 ## ✨ Tính năng chính
 
-### 📋 Diễn đàn
-- Đăng bài viết cho thuê xe hoặc thảo luận
-- Xem danh sách bài viết với filter (danh mục, loại bài viết)
-- Tìm kiếm bài viết
-- Bình luận và reply trên bài viết
-- Quản lý bài viết của mình (sửa, xóa)
-
 ### 🚙 Thuê xe
 - Xem thông tin xe trong bài viết
 - Đặt xe trực tiếp từ bài viết
@@ -23,6 +16,7 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 - Mỗi user có thể vừa thuê xe vừa đăng bài cho thuê
 - Không phân biệt khách hàng/chủ xe
 - Chỉ có 2 role: **user** và **admin**
+- Trung tâm tài khoản: quản lý thông tin cá nhân, địa chỉ, lịch sử thanh toán, thông báo
 
 ## 🛠️ Công nghệ
 
@@ -35,22 +29,26 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 
 ```
 laptrinhweb/
-├── forum/              # Diễn đàn (MỚI)
-│   ├── index.php       # Danh sách bài viết
-│   ├── create-post.php # Đăng bài mới
-│   ├── post-detail.php # Chi tiết bài viết
-│   ├── edit-post.php   # Sửa bài viết
-│   ├── delete-post.php # Xóa bài viết
-│   └── my-posts.php    # Bài viết của tôi
+├── cars/               # Danh sách xe cho thuê
+│   └── index.php       # Trang lọc & tìm kiếm xe
 ├── admin/              # Quản trị (Admin only)
 ├── api/                # API thanh toán VNPAY
 ├── auth/               # Đăng nhập, đăng ký
-├── client/             # Đặt xe, thanh toán, đánh giá
+├── client/             # Đặt xe, thanh toán, đánh giá, hồ sơ
+│   ├── booking.php              # Form đặt xe
+│   ├── payment.php              # Thanh toán
+│   ├── my-bookings.php          # Đơn đặt của tôi
+│   ├── profile.php              # Thông tin tài khoản
+│   ├── addresses.php            # Quản lý địa chỉ nhận/trả xe
+│   ├── payment-history.php      # Lịch sử thanh toán
+│   ├── notifications.php        # Trung tâm thông báo
+│   ├── review.php               # Đánh giá xe
+│   └── car-detail.php           # Chi tiết xe (legacy)
 ├── config/             # Cấu hình database, session
-├── host/               # Quản lý xe (legacy, có thể dùng forum thay thế)
+├── host/               # Quản lý xe cho chủ xe
 ├── includes/           # Header, footer
 ├── uploads/            # Ảnh upload
-├── index.php           # Redirect đến forum
+├── index.php           # Trang chủ
 └── schema.sql          # Database schema
 ```
 
@@ -117,12 +115,11 @@ laptrinhweb/
 ### Bảng chính
 
 - **users**: Người dùng (role: user/admin)
-- **categories**: Danh mục bài viết
-- **posts**: Bài viết/thread (cho thuê xe hoặc thảo luận)
-- **comments**: Bình luận trên bài viết
-- **cars**: Thông tin xe (liên kết với bài viết qua post_id)
+- **cars**: Thông tin xe do chủ xe đăng
 - **bookings**: Đơn đặt xe
 - **payments**: Thanh toán
+- **user_addresses**: Địa chỉ nhận/trả xe yêu thích
+- **user_notifications**: Thông báo gửi cho user
 - **reviews**: Đánh giá xe
 
 Xem chi tiết trong file `schema.sql`

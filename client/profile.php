@@ -10,6 +10,58 @@ requireLogin();
 
 $user_id = $_SESSION['user_id'];
 $base_path = getBasePath();
+$redirect_url = $base_path ? $base_path . '/client/profile.php' : 'profile.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'update_profile') {
+        $full_name = trim($_POST['full_name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+
+        if ($full_name === '' || $email === '') {
+            setFlash('error', 'Vui lòng nhập đầy đủ họ tên và email.');
+            header('Location: ' . $redirect_url);
+            exit();
+        }
+
+        if (!isValidEmail($email)) {
+            setFlash('error', 'Email không hợp lệ.');
+            header('Location: ' . $redirect_url);
+            exit();
+        }
+
+        // Kiểm tra email đã tồn tại cho user khác
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+        $stmt->bind_param("si", $email, $user_id);
+        $stmt->execute();
+        $email_exists = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
+
+        if ($email_exists) {
+            setFlash('error', 'Email đã được sử dụng bởi tài khoản khác.');
+            header('Location: ' . $redirect_url);
+            exit();
+        }
+
+        $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?");
+        $stmt->bind_param("sssi", $full_name, $email, $phone, $user_id);
+        $success = $stmt->execute();
+        $stmt->close();
+
+        if ($success) {
+            $_SESSION['full_name'] = $full_name;
+            $_SESSION['email'] = $email;
+            setFlash('success', 'Đã cập nhật thông tin cá nhân.');
+        } else {
+            setFlash('error', 'Không thể cập nhật thông tin. Vui lòng thử lại.');
+        }
+
+        header('Location: ' . $redirect_url);
+        exit();
+    }
+}
 
 // Lấy thông tin user
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
@@ -42,6 +94,7 @@ $car_count = $car_data['car_count'] ?? 0;
 // Format ngày tham gia
 $joined_date = date('d/m/Y', strtotime($user['created_at']));
 $joined_month = date('F Y', strtotime($user['created_at']));
+$flash = getFlash();
 ?>
 <!DOCTYPE html>
 <html class="light" lang="vi">
@@ -89,57 +142,25 @@ $joined_month = date('F Y', strtotime($user['created_at']));
         <div class="layout-container flex h-full grow flex-col">
             <div class="px-4 sm:px-6 lg:px-8 py-8">
                 <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <!-- Sidebar Menu (Sticky) -->
-                    <aside class="lg:col-span-3">
-                        <div class="bg-white dark:bg-background-dark/50 p-6 rounded-xl shadow-lg sticky top-28">
-                            <h2 class="text-lg font-bold text-[#181411] dark:text-white mb-6">Quản lý tài khoản</h2>
-                            <nav class="space-y-2">
-                                <a href="<?php echo $base_path ? $base_path . '/client/profile.php' : 'profile.php'; ?>" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary transition-colors font-bold">
-                                    <span class="material-symbols-outlined">person</span>
-                                    <span class="font-medium">Thông tin cá nhân</span>
-                                </a>
-                                <a href="<?php echo $base_path ? $base_path . '/forum/my-posts.php' : '../forum/my-posts.php'; ?>" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined">directions_car</span>
-                                    <span class="font-medium">Quản lý cho thuê</span>
-                                </a>
-                                <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'my-bookings.php'; ?>" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined">history</span>
-                                    <span class="font-medium">Lịch sử đặt xe</span>
-                                </a>
-                                <a href="#" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined">receipt_long</span>
-                                    <span class="font-medium">Lịch sử thanh toán</span>
-                                </a>
-                                <a href="#" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined">location_on</span>
-                                    <span class="font-medium">Quản lý địa chỉ</span>
-                                </a>
-                                <a href="<?php echo $base_path ? $base_path . '/auth/logout.php' : '../auth/logout.php'; ?>" 
-                                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors">
-                                    <span class="material-symbols-outlined">logout</span>
-                                    <span class="font-medium">Đăng xuất</span>
-                                </a>
-                            </nav>
-                        </div>
-                    </aside>
+                    <!-- Sidebar Menu -->
+                    <?php
+                        $active_page = 'profile';
+                        include __DIR__ . '/account-sidebar.php';
+                    ?>
                     
                     <!-- Main Content -->
                     <main class="lg:col-span-9">
                         <div class="bg-white dark:bg-background-dark/50 p-6 sm:p-8 rounded-xl shadow-lg">
+                            <?php if ($flash): ?>
+                                <div class="mb-5 rounded-lg border px-4 py-3 text-sm <?php echo $flash['type'] === 'success' ? 'border-green-200 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200' : 'border-red-200 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200'; ?>">
+                                    <?php echo htmlspecialchars($flash['message']); ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                                 <div>
                                     <h1 class="text-2xl font-bold text-[#181411] dark:text-white">Thông tin cá nhân</h1>
                                     <p class="text-gray-600 dark:text-gray-300 mt-1">Quản lý thông tin tài khoản và cài đặt cá nhân của bạn.</p>
                                 </div>
-                                <button class="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors w-full sm:w-auto">
-                                    <span class="material-symbols-outlined">edit</span>
-                                    <span>Chỉnh sửa</span>
-                                </button>
                             </div>
                             
                             <div class="space-y-6">
@@ -180,62 +201,55 @@ $joined_month = date('F Y', strtotime($user['created_at']));
                                 </div>
                                 
                                 <!-- Thông tin chi tiết -->
-                                <div class="space-y-4">
-                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
-                                        <div class="flex items-start gap-4">
-                                            <span class="material-symbols-outlined text-primary mt-1">person</span>
+                                <form method="POST" class="space-y-4">
+                                    <input type="hidden" name="action" value="update_profile">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
+                                            <label class="flex items-center gap-3 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                                                <span class="material-symbols-outlined text-primary">person</span>
+                                                Họ và tên *
+                                            </label>
+                                            <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>"
+                                                required
+                                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-background-dark/20 text-[#181411] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                        </div>
+                                        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
+                                            <label class="flex items-center gap-3 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                                                <span class="material-symbols-outlined text-primary">email</span>
+                                                Email *
+                                            </label>
+                                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>"
+                                                required
+                                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-background-dark/20 text-[#181411] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Email dùng để đăng nhập và nhận thông báo.</p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
+                                            <label class="flex items-center gap-3 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                                                <span class="material-symbols-outlined text-primary">phone</span>
+                                                Số điện thoại
+                                            </label>
+                                            <input type="text" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>"
+                                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-background-dark/20 text-[#181411] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Giúp chủ xe/liên hệ nhanh khi cần thiết.</p>
+                                        </div>
+                                        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center gap-4">
+                                            <span class="material-symbols-outlined text-primary text-3xl">calendar_today</span>
                                             <div>
-                                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">Họ và tên</h3>
-                                                <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($user['full_name'] ?: 'Chưa cập nhật'); ?></p>
+                                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Ngày tham gia</p>
+                                                <p class="text-lg font-bold text-[#181411] dark:text-white mt-1"><?php echo $joined_date; ?></p>
                                             </div>
                                         </div>
-                                        <button class="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                                            <span class="material-symbols-outlined">edit</span>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Thông tin sẽ được áp dụng cho tất cả dịch vụ trong hệ thống.</p>
+                                        <button type="submit" class="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors w-full sm:w-auto">
+                                            <span class="material-symbols-outlined">save</span>
+                                            <span>Lưu thay đổi</span>
                                         </button>
                                     </div>
-                                    
-                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
-                                        <div class="flex items-start gap-4">
-                                            <span class="material-symbols-outlined text-primary mt-1">email</span>
-                                            <div>
-                                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">Email</h3>
-                                                <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($user['email']); ?></p>
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 mt-1">Đã xác thực</span>
-                                            </div>
-                                        </div>
-                                        <button class="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                                            <span class="material-symbols-outlined">edit</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
-                                        <div class="flex items-start gap-4">
-                                            <span class="material-symbols-outlined text-primary mt-1">phone</span>
-                                            <div>
-                                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">Số điện thoại</h3>
-                                                <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($user['phone'] ?: 'Chưa cập nhật'); ?></p>
-                                                <?php if ($user['phone']): ?>
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 mt-1">Đã xác thực</span>
-                                                <?php else: ?>
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 mt-1">Chưa xác thực</span>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                        <button class="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                                            <span class="material-symbols-outlined">edit</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
-                                        <div class="flex items-start gap-4">
-                                            <span class="material-symbols-outlined text-primary mt-1">calendar_today</span>
-                                            <div>
-                                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">Ngày tham gia</h3>
-                                                <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo $joined_date; ?></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                </form>
                                 
                                 <!-- Giấy phép lái xe -->
                                 <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">

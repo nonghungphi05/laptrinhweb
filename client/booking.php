@@ -8,7 +8,6 @@ require_once '../config/session.php';
 requireLogin();
 
 $car_id = $_GET['car_id'] ?? 0;
-$post_id = $_GET['post_id'] ?? 0; // post_id để quay lại bài viết
 $user_id = $_SESSION['user_id'];
 
 // Lấy thông tin xe
@@ -21,11 +20,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    if ($post_id) {
-        header("Location: ../forum/post-detail.php?id=$post_id");
-    } else {
-        header('Location: ../forum/index.php');
-    }
+    header('Location: ../index.php');
     exit();
 }
 
@@ -135,11 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="actions">
                         <button type="submit" class="btn btn-primary">Tiếp tục thanh toán</button>
-                        <?php if ($post_id): ?>
-                            <a href="../forum/post-detail.php?id=<?php echo $post_id; ?>" class="btn btn-secondary">Quay lại bài viết</a>
-                        <?php else: ?>
-                            <a href="../forum/index.php" class="btn btn-secondary">Quay lại diễn đàn</a>
-                        <?php endif; ?>
+                        <a href="car-detail.php?id=<?php echo (int)$car_id; ?>" class="btn btn-secondary">Quay lại xe</a>
                     </div>
                 </form>
             </div>

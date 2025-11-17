@@ -254,7 +254,7 @@ function getActiveStatus($booking) {
                                                 <?php endif; ?>
                                             </div>
                                             <div class="flex flex-wrap gap-2 pt-2 mt-auto">
-                                                <a href="<?php echo $base_path ? $base_path . '/forum/post-detail.php?car_id=' . $booking['car_id'] : '../forum/post-detail.php?car_id=' . $booking['car_id']; ?>" 
+                                                <a href="<?php echo $base_path ? $base_path . '/client/car-detail.php?id=' . $booking['car_id'] : 'car-detail.php?id=' . $booking['car_id']; ?>" 
                                                    class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-gray-100 dark:bg-gray-700 text-text-light dark:text-text-dark text-sm font-medium leading-normal hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                                                     <span class="material-symbols-outlined text-base">visibility</span>
                                                     <span class="truncate">Xem chi tiết</span>

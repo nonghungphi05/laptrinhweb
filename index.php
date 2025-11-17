@@ -9,12 +9,11 @@ require_once 'config/helpers.php';
 // Lấy base path
 $base_path = getBasePath();
 
-// Lấy 8 xe nổi bật (từ database) - chỉ lấy xe có post_id
-$cars_query = "SELECT c.*, u.full_name, p.id as post_id, p.title as post_title
+// Lấy 8 xe nổi bật (từ database)
+$cars_query = "SELECT c.*, u.full_name
                FROM cars c
                JOIN users u ON c.owner_id = u.id
-               INNER JOIN posts p ON c.post_id = p.id
-               WHERE c.status = 'available' AND p.status = 'active'
+               WHERE c.status = 'available'
                ORDER BY c.created_at DESC
                LIMIT 8";
 $cars_result = $conn->query($cars_query);
@@ -119,32 +118,30 @@ $popular_locations = [
                         </div>
                         
                         <!-- Featured Cars Section -->
-                        <section class="py-10">
+                        <section class="py-10" id="featured-cars">
                             <h2 class="text-[#181411] dark:text-gray-200 text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Dòng xe nổi bật</h2>
                             <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 px-4">
                                 <?php if (!empty($featured_cars)): ?>
                                     <?php foreach ($featured_cars as $car): ?>
-                                        <?php if (!empty($car['post_id'])): ?>
-                                            <a href="<?php echo $base_path ? $base_path . '/forum/post-detail.php?id=' . $car['post_id'] : 'forum/post-detail.php?id=' . $car['post_id']; ?>" 
-                                               class="flex flex-col gap-3 pb-3 group">
-                                                <div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" 
-                                                     style='background-image: url("<?php echo $base_path ? $base_path . '/uploads/' : 'uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>");'
-                                                     onerror="this.style.backgroundImage='url(<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : 'uploads/default-car.jpg'; ?>)'">
-                                                </div>
-                                                <div>
-                                                    <p class="text-[#181411] dark:text-white text-base font-medium leading-normal"><?php echo htmlspecialchars($car['name']); ?></p>
-                                                    <p class="text-[#8c755f] dark:text-gray-400 text-sm font-normal leading-normal">
-                                                        Từ <?php echo number_format($car['price_per_day']); ?>đ/ngày
-                                                    </p>
-                                                </div>
-                                            </a>
-                                        <?php endif; ?>
+                                        <a href="<?php echo $base_path ? $base_path . '/client/car-detail.php?id=' . $car['id'] : 'client/car-detail.php?id=' . $car['id']; ?>" 
+                                           class="flex flex-col gap-3 pb-3 group">
+                                            <div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" 
+                                                 style='background-image: url("<?php echo $base_path ? $base_path . '/uploads/' : 'uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>");'
+                                                 onerror="this.style.backgroundImage='url(<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : 'uploads/default-car.jpg'; ?>)'">
+                                            </div>
+                                            <div>
+                                                <p class="text-[#181411] dark:text-white text-base font-medium leading-normal"><?php echo htmlspecialchars($car['name']); ?></p>
+                                                <p class="text-[#8c755f] dark:text-gray-400 text-sm font-normal leading-normal">
+                                                    Từ <?php echo number_format($car['price_per_day']); ?>đ/ngày
+                                                </p>
+                                            </div>
+                                        </a>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <div class="col-span-full text-center py-8">
                                         <p class="text-gray-500">Chưa có xe nào được đăng.</p>
                                         <?php if (isLoggedIn()): ?>
-                                            <a href="<?php echo $base_path ? $base_path . '/forum/create-post.php' : 'forum/create-post.php'; ?>" 
+                                            <a href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'host/add-car.php'; ?>" 
                                                class="text-primary hover:underline mt-2 inline-block">Đăng xe đầu tiên</a>
                                         <?php endif; ?>
                                     </div>
@@ -157,7 +154,7 @@ $popular_locations = [
                             <h2 class="text-[#181411] dark:text-gray-200 text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Khám phá các điểm đến hàng đầu</h2>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
                                 <?php foreach ($popular_locations as $loc): ?>
-                                    <a href="<?php echo $base_path ? $base_path . '/forum/index.php?type=rental&location=' . $loc['code'] : 'forum/index.php?type=rental&location=' . $loc['code']; ?>" 
+                                    <a href="<?php echo $base_path ? $base_path . '/cars/index.php?location=' . $loc['code'] : 'cars/index.php?location=' . $loc['code']; ?>" 
                                        class="relative overflow-hidden rounded-lg group">
                                         <div class="w-full bg-center bg-no-repeat aspect-square bg-cover transition-transform duration-300 group-hover:scale-110" 
                                              style='background-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent), url("https://images.unsplash.com/photo-1539650116574-75c0c6d73aa0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80");'>
@@ -218,8 +215,7 @@ $popular_locations = [
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <form id="advanced-search-form" method="GET" action="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>" class="p-6">
-                <input type="hidden" name="type" value="rental">
+            <form id="advanced-search-form" method="GET" action="<?php echo $base_path ? $base_path . '/cars/index.php' : 'cars/index.php'; ?>" class="p-6">
                 <div class="space-y-6">
                     <!-- Địa điểm -->
                     <div>

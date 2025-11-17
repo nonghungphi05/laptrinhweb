@@ -4,6 +4,7 @@
  */
 require_once '../config/database.php';
 require_once '../config/session.php';
+require_once '../config/helpers.php';
 
 requireRole('admin');
 
@@ -22,12 +23,21 @@ if (isset($_GET['delete']) && $_GET['delete'] > 0) {
     exit();
 }
 
-// Lấy danh sách người dùng
-$stmt = $conn->query("SELECT u.*,
-    (SELECT COUNT(*) FROM cars WHERE owner_id = u.id) as total_cars,
-    (SELECT COUNT(*) FROM bookings WHERE customer_id = u.id) as total_bookings
+// Lấy danh sách người dùng + số liệu tài khoản
+$user_query = "
+    SELECT 
+        u.*,
+        (SELECT COUNT(*) FROM cars WHERE owner_id = u.id) AS total_cars,
+        (SELECT COUNT(*) FROM bookings WHERE customer_id = u.id) AS total_bookings,
+        (SELECT COUNT(*) FROM user_addresses WHERE user_id = u.id) AS total_addresses,
+        (SELECT COUNT(*) FROM user_notifications WHERE user_id = u.id AND is_read = 0) AS unread_notifications,
+        (SELECT COUNT(*) FROM payments p INNER JOIN bookings b ON p.booking_id = b.id WHERE b.customer_id = u.id) AS total_payments,
+        (SELECT IFNULL(SUM(p.amount), 0) FROM payments p INNER JOIN bookings b ON p.booking_id = b.id WHERE b.customer_id = u.id AND p.status = 'completed') AS total_paid_amount
     FROM users u
-    ORDER BY u.created_at DESC");
+    ORDER BY u.created_at DESC
+";
+
+$stmt = $conn->query($user_query);
 $users = $stmt->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -58,8 +68,12 @@ $users = $stmt->fetch_all(MYSQLI_ASSOC);
                             <th>Họ tên</th>
                             <th>Số điện thoại</th>
                             <th>Vai trò</th>
-                            <th>Số xe</th>
-                            <th>Số đơn</th>
+                            <th>Xe</th>
+                            <th>Đơn đặt</th>
+                            <th>Địa chỉ</th>
+                            <th>Thông báo chưa đọc</th>
+                            <th>Thanh toán</th>
+                            <th>Đã thanh toán</th>
                             <th>Ngày tạo</th>
                             <th>Thao tác</th>
                         </tr>
@@ -76,21 +90,24 @@ $users = $stmt->fetch_all(MYSQLI_ASSOC);
                                     <?php
                                     $role_colors = [
                                         'admin' => '#dc3545',
-                                        'host' => '#28a745',
-                                        'customer' => '#007bff'
+                                        'user' => '#0d6efd'
                                     ];
                                     $role_text = [
                                         'admin' => 'Admin',
-                                        'host' => 'Chủ xe',
-                                        'customer' => 'Khách hàng'
+                                        'user' => 'Người dùng'
                                     ];
+                                    $role = $user['role'] ?? 'user';
                                     ?>
-                                    <span style="color: <?php echo $role_colors[$user['role']]; ?>; font-weight: bold;">
-                                        <?php echo $role_text[$user['role']]; ?>
+                                    <span style="color: <?php echo $role_colors[$role] ?? '#6c757d'; ?>; font-weight: bold;">
+                                        <?php echo $role_text[$role] ?? '---'; ?>
                                     </span>
                                 </td>
                                 <td><?php echo $user['total_cars']; ?></td>
                                 <td><?php echo $user['total_bookings']; ?></td>
+                                <td><?php echo $user['total_addresses']; ?></td>
+                                <td><?php echo $user['unread_notifications']; ?></td>
+                                <td><?php echo $user['total_payments']; ?></td>
+                                <td><?php echo formatCurrency($user['total_paid_amount']); ?></td>
                                 <td><?php echo date('d/m/Y', strtotime($user['created_at'])); ?></td>
                                 <td>
                                     <?php if ($user['id'] != $_SESSION['user_id']): ?>

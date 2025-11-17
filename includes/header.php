@@ -11,9 +11,37 @@ if (!function_exists('getBasePath') || !function_exists('isLoggedIn') || !functi
 
 // Lấy base path
 $base_path = getBasePath();
+$host_cta_link = isLoggedIn()
+    ? ($base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php')
+    : ($base_path ? $base_path . '/auth/login.php' : 'auth/login.php');
+
+$current_request = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+$current_request = $current_request === '' ? '/' : $current_request;
+$script_path = $_SERVER['SCRIPT_NAME'] ?? $current_request;
+$home_paths = [];
+$normalized_base = rtrim($base_path ?: '', '/');
+
+if ($normalized_base === '') {
+    $home_paths[] = '/';
+    $home_paths[] = '/index.php';
+} else {
+    $home_paths[] = $normalized_base;
+    $home_paths[] = $normalized_base . '/index.php';
+}
+
+$home_paths = array_unique($home_paths);
+$is_home_page = in_array(rtrim($script_path, '/'), $home_paths, true);
 ?>
 <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f5f2f0] dark:border-b-background-dark/20 px-4 md:px-10 py-3">
-    <div class="flex items-center gap-4 text-primary">
+    <div class="flex items-center gap-3 text-primary">
+        <?php if (!$is_home_page): ?>
+            <button type="button"
+                class="flex items-center justify-center size-9 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='<?php echo $base_path ? $base_path . '/index.php' : '/'; ?>'; }"
+                aria-label="Quay lại trang trước">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+            </button>
+        <?php endif; ?>
         <div class="size-6">
             <svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <g clip-path="url(#clip0_6_319)">
@@ -33,11 +61,11 @@ $base_path = getBasePath();
     <nav class="hidden lg:flex flex-1 justify-center gap-8">
         <a href="<?php echo $base_path ? $base_path . '/index.php' : 'index.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trang chủ</a>
         <a href="<?php echo $base_path ? $base_path . '/index.php#about' : 'index.php#about'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Về chúng tôi</a>
-        <a href="<?php echo $base_path ? $base_path . '/forum/create-post.php' : 'forum/create-post.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trở thành chủ xe</a>
+        <a href="<?php echo $host_cta_link; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trở thành chủ xe</a>
         <?php if (isLoggedIn()): ?>
             <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Chuyến của tôi</a>
         <?php endif; ?>
-        <a href="<?php echo $base_path ? $base_path . '/forum/index.php' : 'forum/index.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Xe yêu thích</a>
+        <a href="<?php echo $base_path ? $base_path . '/cars/index.php' : 'cars/index.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Danh sách xe</a>
     </nav>
     <div class="flex items-center gap-2">
         <?php if (isLoggedIn()): ?>
@@ -51,8 +79,8 @@ $base_path = getBasePath();
                 </div>
                 <div class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                     <a href="<?php echo $base_path ? $base_path . '/client/profile.php' : 'client/profile.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Tài khoản của tôi</a>
-                    <a href="<?php echo $base_path ? $base_path . '/forum/my-posts.php' : 'forum/my-posts.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Bài viết của tôi</a>
                     <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Đơn đặt của tôi</a>
+                    <a href="<?php echo $base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Quản lý xe</a>
                     <?php if (hasRole('admin')): ?>
                         <a href="<?php echo $base_path ? $base_path . '/admin/dashboard.php' : 'admin/dashboard.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Quản trị</a>
                     <?php endif; ?>

@@ -41,11 +41,11 @@ function getBasePath() {
     $script_name = $_SERVER['SCRIPT_NAME'];
     $script_dir = dirname($script_name);
     
-    // Loại bỏ các thư mục con (auth, forum, admin, client, etc.)
+    // Loại bỏ các thư mục con (auth, client, cars, admin, etc.)
     $parts = explode('/', trim($script_dir, '/'));
     
     // Tìm các thư mục con của project
-    $subdirs = ['auth', 'forum', 'admin', 'client', 'host', 'api', 'config'];
+    $subdirs = ['auth', 'cars', 'admin', 'client', 'host', 'api', 'config'];
     foreach ($subdirs as $subdir) {
         $pos = array_search($subdir, $parts);
         if ($pos !== false && $pos > 0) {
@@ -84,7 +84,7 @@ function requireRole($role) {
     requireLogin();
     if (!hasRole($role)) {
         $base_path = getBasePath();
-        header('Location: ' . $base_path . '/forum/index.php');
+        header('Location: ' . $base_path . '/index.php');
         exit();
     }
 }
