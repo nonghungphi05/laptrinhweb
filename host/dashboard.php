@@ -36,6 +36,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['car
             } else {
                 $action_feedback = ['type' => 'error', 'message' => 'Không thể cập nhật trạng thái xe.'];
             }
+        } elseif ($action === 'delete') {
+            // Lấy thông tin xe để xóa ảnh
+            $stmt = $conn->prepare("SELECT image FROM cars WHERE id = ? AND owner_id = ?");
+            $stmt->bind_param("ii", $car_id, $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $car_data = $result->fetch_assoc();
+                if ($car_data['image'] && file_exists('../uploads/' . $car_data['image'])) {
+                    unlink('../uploads/' . $car_data['image']);
+                }
+            }
+            
+            // Xóa xe
+            $delete_stmt = $conn->prepare("DELETE FROM cars WHERE id = ? AND owner_id = ?");
+            $delete_stmt->bind_param("ii", $car_id, $user_id);
+            if ($delete_stmt->execute()) {
+                header('Location: ' . ($base_path ? $base_path . '/host/dashboard.php' : 'dashboard.php'));
+                exit();
+            } else {
+                $action_feedback = ['type' => 'error', 'message' => 'Không thể xóa xe.'];
+            }
         }
     } else {
         $action_feedback = ['type' => 'error', 'message' => 'Xe không tồn tại hoặc không thuộc sở hữu của bạn.'];
@@ -178,15 +201,12 @@ $available_cars = $stmt->get_result()->fetch_assoc()['total'];
                             </a>
                         </div>
                     </div>
-                    <div class="flex flex-col border-t border-border-color dark:border-border-color/20 pt-4">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=f98006&color=fff");'></div>
-                            <div class="flex flex-col">
-                                <h1 class="text-text-main dark:text-white text-base font-medium leading-normal"><?php echo htmlspecialchars($user_name); ?></h1>
-                                <p class="text-text-muted dark:text-gray-400 text-sm font-normal leading-normal"><?php echo htmlspecialchars($_SESSION['email'] ?? ''); ?></p>
-                            </div>
-                        </div>
-                        <a class="flex items-center gap-3 rounded-lg px-3 py-2 mt-4 text-text-muted hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10" href="<?php echo $base_path ? $base_path . '/auth/logout.php' : '../auth/logout.php'; ?>">
+                    <div class="flex flex-col gap-2">
+                        <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-text-muted hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10" href="<?php echo $base_path ? $base_path . '/index.php' : '../index.php'; ?>">
+                            <span class="material-symbols-outlined">home</span>
+                            <p class="text-sm font-medium leading-normal">Về trang chủ</p>
+                        </a>
+                        <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" href="<?php echo $base_path ? $base_path . '/auth/logout.php' : '../auth/logout.php'; ?>">
                             <span class="material-symbols-outlined">logout</span>
                             <p class="text-sm font-medium leading-normal">Đăng xuất</p>
                         </a>
@@ -202,10 +222,25 @@ $available_cars = $stmt->get_result()->fetch_assoc()['total'];
                             <h1 class="text-text-main dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Chào mừng trở lại, <?php echo htmlspecialchars(explode(' ', $user_name)[0] ?? $user_name); ?>!</h1>
                             <p class="text-text-muted dark:text-gray-400 text-base font-normal leading-normal">Cùng xem tổng quan hoạt động kinh doanh của bạn hôm nay.</p>
                         </div>
-                        <a class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors" href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'add-car.php'; ?>">
-                            <span class="material-symbols-outlined">add_circle</span>
-                            <span class="truncate">Thêm xe mới</span>
-                        </a>
+                        <div class="flex items-center gap-4">
+                            <a class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors" href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'add-car.php'; ?>">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                <span class="truncate">Thêm xe mới</span>
+                            </a>
+                            <button class="relative text-text-muted dark:text-gray-400 hover:text-text-main dark:hover:text-white">
+                                <span class="material-symbols-outlined text-2xl">notifications</span>
+                                <?php if ($pending_bookings > 0): ?>
+                                    <span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
+                                <?php endif; ?>
+                            </button>
+                            <div class="flex items-center gap-3">
+                                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 h-10" style='background-image: url("https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=f98006&color=fff");'></div>
+                                <div>
+                                    <p class="text-text-main dark:text-white text-base font-semibold leading-normal"><?php echo htmlspecialchars($user_name); ?></p>
+                                    <p class="text-text-muted dark:text-gray-400 text-sm font-normal leading-normal"><?php echo htmlspecialchars($_SESSION['email'] ?? ''); ?></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <?php if ($action_feedback): ?>
@@ -416,7 +451,5 @@ $available_cars = $stmt->get_result()->fetch_assoc()['total'];
             </main>
         </div>
     </div>
-
-    <?php include '../includes/footer.php'; ?>
 </body>
 </html>
