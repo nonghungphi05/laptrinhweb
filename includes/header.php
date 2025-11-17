@@ -60,7 +60,7 @@ $is_home_page = in_array(rtrim($script_path, '/'), $home_paths, true);
     </div>
     <nav class="hidden lg:flex flex-1 justify-center gap-8">
         <a href="<?php echo $base_path ? $base_path . '/index.php' : 'index.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trang chủ</a>
-        <a href="<?php echo $base_path ? $base_path . '/index.php#about' : 'index.php#about'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Về chúng tôi</a>
+        <a href="<?php echo $base_path ? $base_path . '/about.php' : 'about.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Về chúng tôi</a>
         <a href="<?php echo $host_cta_link; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trở thành chủ xe</a>
         <?php if (isLoggedIn()): ?>
             <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Chuyến của tôi</a>
