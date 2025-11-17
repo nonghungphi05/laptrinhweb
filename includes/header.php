@@ -14,34 +14,9 @@ $base_path = getBasePath();
 $host_cta_link = isLoggedIn()
     ? ($base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php')
     : ($base_path ? $base_path . '/auth/login.php' : 'auth/login.php');
-
-$current_request = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
-$current_request = $current_request === '' ? '/' : $current_request;
-$script_path = $_SERVER['SCRIPT_NAME'] ?? $current_request;
-$home_paths = [];
-$normalized_base = rtrim($base_path ?: '', '/');
-
-if ($normalized_base === '') {
-    $home_paths[] = '/';
-    $home_paths[] = '/index.php';
-} else {
-    $home_paths[] = $normalized_base;
-    $home_paths[] = $normalized_base . '/index.php';
-}
-
-$home_paths = array_unique($home_paths);
-$is_home_page = in_array(rtrim($script_path, '/'), $home_paths, true);
 ?>
 <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f5f2f0] dark:border-b-background-dark/20 px-4 md:px-10 py-3">
     <div class="flex items-center gap-3 text-primary">
-        <?php if (!$is_home_page): ?>
-            <button type="button"
-                class="flex items-center justify-center size-9 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='<?php echo $base_path ? $base_path . '/index.php' : '/'; ?>'; }"
-                aria-label="Quay lại trang trước">
-                <span class="material-symbols-outlined text-lg">arrow_back</span>
-            </button>
-        <?php endif; ?>
         <div class="size-6">
             <svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <g clip-path="url(#clip0_6_319)">
@@ -60,7 +35,7 @@ $is_home_page = in_array(rtrim($script_path, '/'), $home_paths, true);
     </div>
     <nav class="hidden lg:flex flex-1 justify-center gap-8">
         <a href="<?php echo $base_path ? $base_path . '/index.php' : 'index.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trang chủ</a>
-        <a href="<?php echo $base_path ? $base_path . '/index.php#about' : 'index.php#about'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Về chúng tôi</a>
+        <a href="<?php echo $base_path ? $base_path . '/about.php' : 'about.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Về chúng tôi</a>
         <a href="<?php echo $host_cta_link; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Trở thành chủ xe</a>
         <?php if (isLoggedIn()): ?>
             <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="text-[#181411] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">Chuyến của tôi</a>
