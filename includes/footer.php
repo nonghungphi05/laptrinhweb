@@ -20,9 +20,9 @@ $base_path = getBasePath();
                 <h3 class="text-lg font-bold text-[#181411] dark:text-white mb-4">Liên kết nhanh</h3>
                 <ul class="space-y-2">
                     <li><a href="<?php echo $base_path ? $base_path . '/index.php' : 'index.php'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Trang chủ</a></li>
-                    <li><a href="<?php echo $base_path ? $base_path . '/cars/index.php' : 'cars/index.php'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Danh sách xe</a></li>
+                    <li><a href="<?php echo $base_path ? $base_path . '/index.php#featured-cars' : 'index.php#featured-cars'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Danh sách xe</a></li>
                     <li><a href="<?php echo $base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Quản lý xe</a></li>
-                    <li><a href="<?php echo $base_path ? $base_path . '/about.php' : 'about.php'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Về chúng tôi</a></li>
+                    <li><a href="<?php echo $base_path ? $base_path . '/index.php#about' : 'index.php#about'; ?>" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">Về chúng tôi</a></li>
                 </ul>
             </div>
             <div>
