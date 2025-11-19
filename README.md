@@ -11,6 +11,7 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 - Kiểm tra trùng lịch đặt xe
 - Thanh toán online qua VNPAY
 - Đánh giá xe sau khi thuê
+- 💬 **Chat trực tiếp**: Nhắn tin trao đổi giữa người thuê và chủ xe (Real-time)
 
 ### 👤 Tài khoản
 - Mỗi user có thể vừa thuê xe vừa đăng bài cho thuê
@@ -20,8 +21,9 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 
 ## 🛠️ Công nghệ
 
-- **Frontend**: HTML5, CSS3 (Pure CSS), JavaScript (Vanilla JS)
+- **Frontend**: HTML5, CSS3 (Pure CSS & Tailwind CSS), JavaScript (Vanilla JS)
 - **Backend**: PHP 7.4+, MySQL 5.7+
+- **Real-time**: Pusher (Chat feature)
 - **Payment**: VNPAY Sandbox
 - **Server**: Apache (mod_rewrite)
 
@@ -33,7 +35,9 @@ laptrinhweb/
 │   └── index.php       # Trang lọc & tìm kiếm xe
 ├── admin/              # Quản trị (Admin only)
 ├── api/                # API thanh toán VNPAY
+├── assets/             # CSS, JS, Fonts
 ├── auth/               # Đăng nhập, đăng ký
+├── chat/               # API xử lý tin nhắn (send, get history)
 ├── client/             # Đặt xe, thanh toán, đánh giá, hồ sơ
 │   ├── booking.php              # Form đặt xe
 │   ├── payment.php              # Thanh toán
@@ -42,15 +46,6 @@ laptrinhweb/
 │   ├── addresses.php            # Quản lý địa chỉ nhận/trả xe
 │   ├── payment-history.php      # Lịch sử thanh toán
 │   ├── notifications.php        # Trung tâm thông báo
-│   ├── review.php               # Đánh giá xe
-│   └── car-detail.php           # Chi tiết xe (legacy)
-├── config/             # Cấu hình database, session
-├── host/               # Quản lý xe cho chủ xe
-├── includes/           # Header, footer
-├── uploads/            # Ảnh upload
-├── index.php           # Trang chủ
-└── schema.sql          # Database schema
-```
 
 ## 🚀 Cài đặt trên XAMPP
 
@@ -121,6 +116,7 @@ laptrinhweb/
 - **user_addresses**: Địa chỉ nhận/trả xe yêu thích
 - **user_notifications**: Thông báo gửi cho user
 - **reviews**: Đánh giá xe
+- **messages**: Tin nhắn chat (Tự động tạo khi chạy messages.php)
 
 Xem chi tiết trong file `schema.sql`
 

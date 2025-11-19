@@ -153,12 +153,11 @@ function getActiveStatus($booking) {
 </head>
 <body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
     <div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+        <!-- Header -->
+        <?php include '../includes/header.php'; ?>
         <div class="layout-container flex h-full grow flex-col">
             <div class="flex flex-1 justify-center py-5">
                 <div class="layout-content-container flex flex-col w-full max-w-5xl flex-1 px-4 sm:px-6 lg:px-8">
-                    <!-- Header -->
-                    <?php include '../includes/header.php'; ?>
-                    
                     <main class="flex-1 py-8">
                         <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
                             <h1 class="text-4xl font-black leading-tight tracking-[-0.033em]">Chuyến đi của tôi</h1>
