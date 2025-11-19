@@ -305,16 +305,46 @@ document.getElementById('conversation-list')?.addEventListener('click', (e) => {
     loadConversation(activePartnerId, item.dataset.userName);
 });
 
-Pusher.logToConsole = false;
-const pusher = new Pusher('21b6af37da0f37a7ce0c', { cluster: 'ap1', forceTLS: true });
-const channel = pusher.subscribe('chat_channel_' + CURRENT_USER);
+// Bật log để debug (tắt khi production)
+Pusher.logToConsole = true;
+
+const pusher = new Pusher('21b6af37da0f37a7ce0c', { 
+    cluster: 'ap1', 
+    forceTLS: true 
+});
+
+const channelName = 'chat_channel_' + CURRENT_USER;
+console.log('Đang subscribe channel:', channelName);
+
+const channel = pusher.subscribe(channelName);
+
+channel.bind('pusher:subscription_succeeded', function() {
+    console.log('✅ Đã kết nối Pusher thành công!');
+});
+
+channel.bind('pusher:subscription_error', function(status) {
+    console.error('❌ Lỗi kết nối Pusher:', status);
+});
+
 channel.bind('new_message', function(data) {
-    if (Number(data.sender_id) === activePartnerId) {
+    console.log('📨 Nhận tin nhắn mới:', data);
+    const senderId = Number(data.sender_id);
+    
+    // Nếu đang xem đúng cuộc trò chuyện với người gửi, hiện tin nhắn ngay
+    if (senderId === activePartnerId) {
         appendMessage({
             message: data.message,
             sender_id: data.sender_id,
-            created_at: new Date(data.created_at).toLocaleTimeString()
+            created_at: data.created_at ? new Date(data.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
         });
+    } else {
+        // Nếu không đang xem, cập nhật conversation list
+        console.log('Tin nhắn từ người khác, cần reload conversation list');
+        // Có thể reload trang hoặc update conversation list bằng AJAX
+        // Tạm thời reload để đơn giản
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
     }
 });
 </script>

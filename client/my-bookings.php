@@ -13,6 +13,53 @@ $base_path = getBasePath();
 
 // Lấy tham số filter theo status
 $status_filter = $_GET['status'] ?? 'all';
+$flash_success = $_GET['success'] ?? '';
+$flash_error   = $_GET['error'] ?? '';
+
+// Xử lý hủy chuyến
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id'])) {
+    $cancel_id = (int) $_POST['cancel_booking_id'];
+    $redirect_status = $_POST['current_status'] ?? $status_filter;
+
+    $stmt = $conn->prepare("SELECT status, start_date FROM bookings WHERE id = ? AND customer_id = ?");
+    $stmt->bind_param("ii", $cancel_id, $user_id);
+    $stmt->execute();
+    $booking_to_cancel = $stmt->get_result()->fetch_assoc();
+
+    if (!$booking_to_cancel) {
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Không tìm thấy chuyến này.'));
+        exit();
+    }
+
+    $today = date('Y-m-d');
+    $can_cancel = false;
+
+    if ($booking_to_cancel['status'] === 'pending' && $booking_to_cancel['start_date'] > $today) {
+        $can_cancel = true;
+    } elseif ($booking_to_cancel['status'] === 'confirmed' && $booking_to_cancel['start_date'] > $today) {
+        $pay_check = $conn->prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'completed'");
+        $pay_check->bind_param("i", $cancel_id);
+        $pay_check->execute();
+        $has_completed_payment = $pay_check->get_result()->num_rows > 0;
+        $can_cancel = !$has_completed_payment;
+    }
+
+    if ($can_cancel) {
+        $stmt = $conn->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
+        $stmt->bind_param("i", $cancel_id);
+        $stmt->execute();
+
+        $pay_update = $conn->prepare("UPDATE payments SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'");
+        $pay_update->bind_param("i", $cancel_id);
+        $pay_update->execute();
+
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&success=" . urlencode('Đã hủy chuyến thành công.'));
+        exit();
+    } else {
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Không thể hủy chuyến này.'));
+        exit();
+    }
+}
 
 // Lấy danh sách đơn đặt
 $sql = "SELECT b.*, c.name as car_name, c.image as car_image,
@@ -153,15 +200,26 @@ function getActiveStatus($booking) {
 </head>
 <body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
     <div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
-        <!-- Header -->
-        <?php include '../includes/header.php'; ?>
         <div class="layout-container flex h-full grow flex-col">
             <div class="flex flex-1 justify-center py-5">
                 <div class="layout-content-container flex flex-col w-full max-w-5xl flex-1 px-4 sm:px-6 lg:px-8">
+                    <!-- Header -->
+                    <?php include '../includes/header.php'; ?>
+                    
                     <main class="flex-1 py-8">
                         <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
                             <h1 class="text-4xl font-black leading-tight tracking-[-0.033em]">Chuyến đi của tôi</h1>
                         </div>
+
+                        <?php if ($flash_success): ?>
+                            <div class="rounded-xl border border-green-200 bg-green-50 text-green-700 px-4 py-3 mb-4 text-sm">
+                                <?php echo htmlspecialchars($flash_success); ?>
+                            </div>
+                        <?php elseif ($flash_error): ?>
+                            <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-4 text-sm">
+                                <?php echo htmlspecialchars($flash_error); ?>
+                            </div>
+                        <?php endif; ?>
                         
                         <!-- Tabs -->
                         <div class="pb-3">
@@ -270,17 +328,28 @@ function getActiveStatus($booking) {
                                                         <span class="material-symbols-outlined text-base">star</span>
                                                         <span class="truncate">Viết đánh giá</span>
                                                     </a>
-                                                <?php elseif ($active_status === 'upcoming' || $active_status === 'pending'): ?>
-                                                    <button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-red-500/10 text-red-600 dark:bg-red-900/50 dark:text-red-300 text-sm font-medium leading-normal hover:bg-red-500/20 transition-colors">
-                                                        <span class="material-symbols-outlined text-base">cancel</span>
-                                                        <span class="truncate">Hủy chuyến</span>
-                                                    </button>
-                                                <?php elseif ($booking['payment_status'] !== 'completed'): ?>
+                                                <?php else: ?>
+                                                    <?php
+                                                        $booking_start_ts = strtotime($booking['start_date']);
+                                                        $allow_cancel = ($booking['status'] === 'pending' && $booking_start_ts > time())
+                                                            || ($booking['status'] === 'confirmed' && $booking_start_ts > time() && $booking['payment_status'] !== 'completed');
+                                                    ?>
+                                                    <?php if ($allow_cancel): ?>
+                                                    <form method="POST" class="inline-flex" onsubmit="return confirm('Bạn chắc chắn muốn hủy chuyến này?');">
+                                                        <input type="hidden" name="cancel_booking_id" value="<?php echo $booking['id']; ?>">
+                                                        <input type="hidden" name="current_status" value="<?php echo htmlspecialchars($status_filter); ?>">
+                                                        <button type="submit" class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-red-500/10 text-red-600 dark:bg-red-900/50 dark:text-red-300 text-sm font-medium leading-normal hover:bg-red-500/20 transition-colors">
+                                                            <span class="material-symbols-outlined text-base">cancel</span>
+                                                            <span class="truncate">Hủy chuyến</span>
+                                                        </button>
+                                                    </form>
+                                                    <?php elseif ($booking['payment_status'] !== 'completed'): ?>
                                                     <a href="<?php echo $base_path ? $base_path . '/client/payment.php?booking_id=' . $booking['id'] : 'payment.php?booking_id=' . $booking['id']; ?>" 
                                                        class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-medium leading-normal hover:bg-opacity-90 transition-opacity">
                                                         <span class="material-symbols-outlined text-base">payments</span>
                                                         <span class="truncate">Thanh toán</span>
                                                     </a>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
                                         </div>

@@ -81,144 +81,173 @@ $status_text = [
     'rented' => 'Đang cho thuê',
     'maintenance' => 'Bảo trì'
 ];
+$can_book = isLoggedIn()
+    && $current_user_id !== (int)$car['owner_id']
+    && $car['status'] === 'available';
 ?>
-<body class="font-display bg-background-light text-[#181411]">
-    <div class="min-h-screen flex flex-col">
+<body class="font-display bg-background-light text-text-light">
+    <div class="relative flex min-h-screen flex-col bg-background-light">
         <div class="bg-white shadow">
             <?php include '../includes/header.php'; ?>
         </div>
 
-        <main class="flex-1 px-4 py-8 md:px-8 lg:px-12">
-            <div class="max-w-6xl mx-auto">
-                <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                    <a href="../index.php" class="hover:text-primary">Trang chủ</a>
-                    <span>/</span>
-                    <span>Chi tiết xe</span>
-                </div>
+        <main class="container mx-auto px-4 py-8">
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                <a href="../index.php" class="hover:text-primary">Trang chủ</a>
+                <span>/</span>
+                <span>Chi tiết xe</span>
+            </div>
 
-                <div class="grid gap-8 lg:grid-cols-5">
-                    <div class="lg:col-span-3 space-y-4">
-                        <div class="bg-white rounded-2xl shadow overflow-hidden min-h-[380px] bg-cover bg-center flex items-end justify-center" style="background-image:url('<?php echo htmlspecialchars($gallery_images[0]); ?>');">
-                            <div class="flex gap-2 mb-4">
-                                <?php foreach ($gallery_images as $index => $image): ?>
-                                    <span class="w-2 h-2 rounded-full <?php echo $index === 0 ? 'bg-white' : 'bg-white/60'; ?>"></span>
-                                <?php endforeach; ?>
-                            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-8">
+                <div class="bg-cover bg-center min-h-[420px] rounded-2xl shadow" style="background-image:url('<?php echo htmlspecialchars($gallery_images[0]); ?>');"></div>
+                <div class="hidden lg:grid grid-cols-2 grid-rows-2 gap-2">
+                    <?php foreach (array_slice($gallery_images, 1) as $img): ?>
+                        <div class="bg-cover bg-center rounded-2xl shadow-sm min-h-[180px]" style="background-image:url('<?php echo htmlspecialchars($img); ?>');"></div>
+                    <?php endforeach; ?>
+                    <div class="relative bg-cover bg-center rounded-2xl shadow-sm min-h-[180px]" style="background-image:url('https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1000&q=80');">
+                        <div class="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                            <button class="bg-white/90 text-text-light text-sm font-bold py-2 px-4 rounded-full flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">photo_library</span> Xem tất cả ảnh
+                            </button>
                         </div>
-                        <div class="grid grid-cols-4 gap-3">
-                            <?php foreach ($gallery_images as $image): ?>
-                                <div class="h-24 rounded-xl overflow-hidden bg-cover bg-center border border-white shadow-sm" style="background-image:url('<?php echo htmlspecialchars($image); ?>');"></div>
-                            <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+                <section class="space-y-8">
+                    <div class="border-b border-border-light pb-6">
+                        <div class="flex flex-wrap justify-between gap-3 mb-4">
+                            <div>
+                                <p class="text-sm text-secondary uppercase tracking-wide"><?php echo htmlspecialchars(ucfirst($car['car_type'])); ?></p>
+                                <h1 class="text-4xl font-black text-secondary"><?php echo htmlspecialchars($car['name']); ?></h1>
+                                <div class="flex items-center gap-2 text-gray-600 mt-2">
+                                    <?php if ($car['avg_rating']): ?>
+                                        <span class="material-symbols-outlined text-primary">star</span>
+                                        <span><?php echo number_format($car['avg_rating'], 1); ?> (<?php echo $car['review_count']; ?> đánh giá)</span>
+                                        <span class="text-gray-400">•</span>
+                                    <?php endif; ?>
+                                    <span class="material-symbols-outlined text-primary">location_on</span>
+                                    <span><?php echo htmlspecialchars($car['location']); ?></span>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold <?php echo $car['status'] === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'; ?>">
+                                <?php echo $status_text[$car['status']] ?? $car['status']; ?>
+                            </span>
+                        </div>
+                        <p class="text-3xl font-black text-primary mb-2"><?php echo number_format($car['price_per_day']); ?>đ <span class="text-base text-gray-500 font-normal">/ ngày</span></p>
+                        <p class="text-gray-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($car['description'])); ?></p>
+                    </div>
+
+                    <div class="border-b border-border-light pb-6 space-y-6">
+                        <h3 class="text-2xl font-bold text-secondary">Thông tin chi tiết</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">directions_car</span>
+                                <p class="text-sm text-gray-500 mt-2">Loại xe</p>
+                                <p class="font-semibold"><?php echo htmlspecialchars($car['car_type']); ?></p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">auto_mode</span>
+                                <p class="text-sm text-gray-500 mt-2">Hình thức thuê</p>
+                                <p class="font-semibold"><?php echo htmlspecialchars($car['rental_type']); ?></p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">location_on</span>
+                                <p class="text-sm text-gray-500 mt-2">Địa điểm</p>
+                                <p class="font-semibold"><?php echo htmlspecialchars($car['location']); ?></p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">payments</span>
+                                <p class="text-sm text-gray-500 mt-2">Giá/ngày</p>
+                                <p class="font-semibold"><?php echo number_format($car['price_per_day']); ?>đ</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="lg:col-span-2 flex flex-col gap-6">
-                        <div class="bg-white rounded-2xl shadow p-6 space-y-4">
-                            <div>
-                                <p class="text-sm text-gray-500"><?php echo htmlspecialchars(ucfirst($car['car_type'])); ?></p>
-                                <h1 class="text-3xl font-extrabold text-[#181411]"><?php echo htmlspecialchars($car['name']); ?></h1>
-                                <span class="inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold <?php echo $car['status'] === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'; ?>">
-                                    <?php echo $status_text[$car['status']] ?? $car['status']; ?>
-                                </span>
-                            </div>
+                    <div class="border-b border-border-light pb-6 space-y-5">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-2xl font-bold text-secondary">Đánh giá từ khách hàng</h3>
                             <?php if ($car['avg_rating']): ?>
-                                <div class="flex items-center gap-1 text-[#f5a524]">
-                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <span class="material-symbols-outlined text-base"><?php echo $i <= round($car['avg_rating']) ? 'star' : 'star_rate'; ?></span>
-                                    <?php endfor; ?>
-                                    <span class="text-sm text-gray-500 ml-2"><?php echo number_format($car['avg_rating'], 1); ?> (<?php echo $car['review_count']; ?> đánh giá)</span>
+                                <div class="flex items-center gap-2 text-primary">
+                                    <span class="material-symbols-outlined">star</span>
+                                    <span class="text-xl font-bold"><?php echo number_format($car['avg_rating'], 1); ?></span>
+                                    <span class="text-gray-500">(<?php echo $car['review_count']; ?>)</span>
                                 </div>
                             <?php endif; ?>
-                            <p class="text-4xl font-black text-primary"><?php echo number_format($car['price_per_day']); ?>đ <span class="text-base text-gray-500 font-normal">/ ngày</span></p>
-                            <p class="text-gray-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($car['description'])); ?></p>
+                        </div>
+                        <?php if (empty($reviews)): ?>
+                            <p class="text-gray-500">Chưa có đánh giá nào.</p>
+                        <?php else: ?>
+                            <div class="space-y-4">
+                                <?php foreach ($reviews as $review): ?>
+                                    <article class="bg-white rounded-2xl shadow p-5 space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold"><?php echo htmlspecialchars($review['full_name']); ?></p>
+                                                <p class="text-xs text-gray-400"><?php echo date('d/m/Y H:i', strtotime($review['created_at'])); ?></p>
+                                            </div>
+                                            <div class="flex text-primary">
+                                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                    <span class="material-symbols-outlined text-sm"><?php echo $i <= (int)$review['rating'] ? 'star' : 'star_rate'; ?></span>
+                                                <?php endfor; ?>
+                                            </div>
+                                        </div>
+                                        <p class="text-gray-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($review['comment'])); ?></p>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
 
-                            <div class="border-t border-gray-100 pt-4 space-y-3">
-                                <div>
-                                    <p class="text-xs uppercase text-gray-400">Chủ xe</p>
-                                    <p class="text-lg font-semibold text-[#181411]"><?php echo htmlspecialchars($car['owner_name']); ?></p>
-                                </div>
+                <aside class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow p-6 space-y-4">
+                        <h3 class="text-lg font-bold text-secondary">Thông tin chủ xe</h3>
+                        <div class="flex items-center gap-4">
+                            <div class="size-16 rounded-full bg-cover bg-center" style="background-image:url('https://ui-avatars.com/api/?name=<?php echo urlencode($car['owner_name']); ?>&background=f48c25&color=fff');"></div>
+                            <div>
+                                <p class="text-lg font-bold text-secondary"><?php echo htmlspecialchars($car['owner_name']); ?></p>
+                                <p class="text-sm text-gray-500">Tham gia từ 2023</p>
                                 <?php if ($car['owner_phone']): ?>
-                                    <div>
-                                        <p class="text-xs uppercase text-gray-400">Liên hệ</p>
-                                        <p class="font-medium text-gray-700"><?php echo htmlspecialchars($car['owner_phone']); ?></p>
-                                    </div>
+                                    <p class="text-sm text-gray-500"><?php echo htmlspecialchars($car['owner_phone']); ?></p>
                                 <?php endif; ?>
-                                <div class="flex flex-wrap gap-3 pt-2">
-                                    <?php if ($can_message_owner): ?>
-                                        <a href="<?php echo $messages_url; ?>" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary font-semibold hover:bg-primary/5 transition">
-                                            <span class="material-symbols-outlined text-base">chat</span>
-                                            Chat với chủ xe
-                                        </a>
-                                    <?php elseif (!isLoggedIn()): ?>
-                                        <a href="../auth/login.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary font-semibold hover:bg-primary/5 transition">
-                                            <span class="material-symbols-outlined text-base">chat</span>
-                                            Đăng nhập để chat
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php if (isLoggedIn() && hasRole('customer') && $car['status'] === 'available'): ?>
-                                        <a href="booking.php?car_id=<?php echo $car['id']; ?>" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
-                                            <span class="material-symbols-outlined text-base">bolt</span>
-                                            Đặt xe ngay
-                                        </a>
-                                    <?php elseif (!isLoggedIn()): ?>
-                                        <a href="../auth/login.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold">
-                                            Đăng nhập để đặt xe
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
                             </div>
                         </div>
-
-                        <div class="bg-white rounded-2xl shadow p-6 space-y-4">
-                            <h3 class="text-lg font-bold">Thông tin cơ bản</h3>
-                            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                                <div>
-                                    <p class="text-gray-400 text-xs uppercase">Loại xe</p>
-                                    <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($car['car_type']); ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-gray-400 text-xs uppercase">Hình thức thuê</p>
-                                    <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($car['rental_type']); ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-gray-400 text-xs uppercase">Địa điểm</p>
-                                    <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($car['location']); ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-gray-400 text-xs uppercase">Giá/ngày</p>
-                                    <p class="font-semibold text-gray-800"><?php echo number_format($car['price_per_day']); ?>đ</p>
-                                </div>
-                            </div>
+                        <div class="flex flex-col gap-3">
+                            <?php if ($can_book): ?>
+                                <a href="booking.php?car_id=<?php echo $car['id']; ?>" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
+                                    <span class="material-symbols-outlined text-base">event_available</span>
+                                    Thuê xe ngay
+                                </a>
+                            <?php elseif (!isLoggedIn()): ?>
+                                <a href="../auth/login.php" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white font-semibold hover:bg-gray-800 transition">
+                                    Đăng nhập để thuê xe
+                                </a>
+                            <?php else: ?>
+                                <span class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-gray-200 text-gray-500 font-semibold">
+                                    Xe hiện không khả dụng
+                                </span>
+                            <?php endif; ?>
+                            <?php if ($can_message_owner): ?>
+                                <a href="<?php echo $messages_url; ?>" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition">
+                                    <span class="material-symbols-outlined text-base">chat</span>
+                                    Chat với chủ xe
+                                </a>
+                            <?php elseif (!isLoggedIn()): ?>
+                                <a href="../auth/login.php" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-primary text-primary font-semibold">
+                                    Chat với chủ xe
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
-                </div>
-
-                <section class="mt-12">
-                    <h2 class="text-2xl font-bold text-[#181411] mb-4">Đánh giá từ khách hàng</h2>
-                    <?php if (empty($reviews)): ?>
-                        <p class="text-gray-500">Chưa có đánh giá nào.</p>
-                    <?php else: ?>
-                        <div class="grid gap-6 md:grid-cols-2">
-                            <?php foreach ($reviews as $review): ?>
-                                <div class="bg-white rounded-2xl shadow p-5 space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="font-semibold"><?php echo htmlspecialchars($review['full_name']); ?></p>
-                                            <p class="text-xs text-gray-400"><?php echo date('d/m/Y H:i', strtotime($review['created_at'])); ?></p>
-                                        </div>
-                                        <div class="flex text-[#f5a524]">
-                                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <span class="material-symbols-outlined text-sm"><?php echo $i <= (int)$review['rating'] ? 'star' : 'star_rate'; ?></span>
-                                            <?php endfor; ?>
-                                        </div>
-                                    </div>
-                                    <p class="text-gray-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($review['comment'])); ?></p>
-                                </div>
-                            <?php endforeach; ?>
+                    <div class="bg-white rounded-2xl shadow p-6 space-y-4">
+                        <h3 class="text-lg font-bold text-secondary">Địa điểm xe</h3>
+                        <div class="w-full h-48 bg-gray-200 rounded-2xl overflow-hidden">
+                            <div class="w-full h-full bg-cover bg-center" style="background-image:url('https://maps.googleapis.com/maps/api/staticmap?center=<?php echo urlencode($car['location']); ?>&zoom=13&size=640x360&scale=2&markers=color:red%7C<?php echo urlencode($car['location']); ?>');"></div>
                         </div>
-                    <?php endif; ?>
-                </section>
+                    </div>
+                </aside>
             </div>
         </main>
 
