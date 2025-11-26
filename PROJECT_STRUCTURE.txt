@@ -1,5 +1,5 @@
 ========================================
-CẤU TRÚC DỰ ÁN - DIỄN ĐÀN THUÊ XE
+CẤU TRÚC DỰ ÁN - WEBSITE THUÊ XE
 ========================================
 
 📁 LAPTRINHWEB/
@@ -59,8 +59,8 @@ CẤU TRÚC DỰ ÁN - DIỄN ĐÀN THUÊ XE
 │   └── [Ảnh xe và file upload]
 │
 ├── index.php                    - Trang chủ Tailwind
-├── schema.sql                   - Database schema
-├── migration_to_forum.sql       - (Legacy) script cũ
+├── schema.sql                   - Database schema (phiên bản thuê xe thuần, không diễn đàn)
+├── migration_add_rental_type.sql- Script legacy thêm cột rental_type cho DB cũ
 └── README.md                    - Tài liệu hướng dẫn
 
 ========================================

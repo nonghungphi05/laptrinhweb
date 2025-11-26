@@ -1,12 +1,12 @@
-# 🚗 Diễn đàn Thuê Xe Tự Lái
+# 🚗 Thuê Xe Tự Lái
 
-Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê xe vừa đăng bài cho thuê xe trên cùng một tài khoản.
+Website cho thuê xe ô tô (tự lái / có tài xế / dài hạn) – Mỗi user có thể vừa thuê xe vừa đăng xe cho thuê trên cùng một tài khoản.
 
 ## ✨ Tính năng chính
 
 ### 🚙 Thuê xe
-- Xem thông tin xe trong bài viết
-- Đặt xe trực tiếp từ bài viết
+- Xem thông tin chi tiết từng xe
+- Đặt xe trực tiếp từ trang chi tiết xe
 - Chọn ngày thuê, tự động tính tổng tiền
 - Kiểm tra trùng lịch đặt xe
 - Thanh toán online qua VNPAY
@@ -14,14 +14,13 @@ Website diễn đàn cho thuê xe tự lái - Nơi bạn có thể vừa thuê x
 - 💬 **Chat trực tiếp**: Nhắn tin trao đổi giữa người thuê và chủ xe (Real-time)
 
 ### 👤 Tài khoản
-- Mỗi user có thể vừa thuê xe vừa đăng bài cho thuê
-- Không phân biệt khách hàng/chủ xe
-- Chỉ có 2 role: **user** và **admin**
+- Mỗi user có thể vừa thuê xe vừa đăng xe cho thuê
+- Không phân biệt khách hàng/chủ xe (chỉ có 2 role: **user** và **admin**)
 - Trung tâm tài khoản: quản lý thông tin cá nhân, địa chỉ, lịch sử thanh toán, thông báo
 
 ## 🛠️ Công nghệ
 
-- **Frontend**: HTML5, CSS3 (Pure CSS & Tailwind CSS), JavaScript (Vanilla JS)
+- **Frontend**: HTML5, CSS3 (Tailwind CSS), JavaScript (Vanilla JS)
 - **Backend**: PHP 7.4+, MySQL 5.7+
 - **Real-time**: Pusher (Chat feature)
 - **Payment**: VNPAY Sandbox
@@ -76,7 +75,7 @@ laptrinhweb/
 
 5. **Truy cập website**
    - Mở trình duyệt: `http://localhost/webthuexe`
-   - Sẽ tự động redirect đến diễn đàn
+   - Sẽ vào trang chủ danh sách xe/landing page
 
 ### 📝 File SQL
 
@@ -132,11 +131,11 @@ Xem chi tiết trong file `schema.sql`
 
 ## 🎯 Tính năng nổi bật
 
-1. **Diễn đàn tích hợp**: Đăng bài viết cho thuê xe như một bài post trong diễn đàn
-2. **Dual role**: Mỗi user có thể vừa là người thuê vừa là người cho thuê
-3. **Bình luận**: Hỗ trợ bình luận và reply trên bài viết
-4. **Tích hợp booking**: Đặt xe trực tiếp từ bài viết
-5. **Thanh toán online**: Tích hợp VNPAY
+1. **Thuê xe linh hoạt**: Thuê xe tự lái, có tài xế hoặc thuê dài hạn
+2. **Dual role**: Mỗi user có thể vừa là người thuê vừa là người cho thuê (chủ xe)
+3. **Đặt xe trực tiếp**: Đặt xe ngay trên trang chi tiết xe, tự động tính tổng tiền và kiểm tra trùng lịch
+4. **Đánh giá sau chuyến đi**: Khách có thể đánh giá, nhận xét xe đã thuê
+5. **Thanh toán online**: Tích hợp VNPAY Sandbox cho môi trường test
 
 ## 📞 Hỗ trợ
 
@@ -159,6 +158,3 @@ Có thể thêm:
 
 ---
 
-**License**: MIT  
-**Author**: [Your Name]  
-**Version**: 2.0 (Diễn đàn version)
