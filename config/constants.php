@@ -46,10 +46,10 @@ define('USER_ROLES', [
 ]);
 
 // VNPAY Config (Sandbox)
-define('VNPAY_TMN_CODE', 'DEMO');
-define('VNPAY_HASH_SECRET', 'DEMOSECRETKEY');
+define('VNPAY_TMN_CODE', 'E1W34YKD');
+define('VNPAY_HASH_SECRET', 'PNJVXMCKPHW7F3SZQ3GTA338WL8CZ0IG');
 define('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
-define('VNPAY_RETURN_URL', BASE_URL . '/api/vnpay-return.php');
+define('VNPAY_RETURN_URL', BASE_URL . '/api/vnpay_return.php');
 
 // Timezone
 date_default_timezone_set('Asia/Ho_Chi_Minh');
