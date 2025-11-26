@@ -117,13 +117,29 @@ $data_stmt->close();
 
 // Lấy ds địa điểm
 $locations = [
-    'hcm' => 'TP. Hồ Chí Minh',
-    'hanoi' => 'Hà Nội',
-    'danang' => 'Đà Nẵng',
-    'cantho' => 'Cần Thơ',
+    'hcm'      => 'TP. Hồ Chí Minh',
+    'hanoi'    => 'Hà Nội',
+    'danang'   => 'Đà Nẵng',
+    'cantho'   => 'Cần Thơ',
     'nhatrang' => 'Nha Trang',
-    'dalat' => 'Đà Lạt',
-    'phuquoc' => 'Phú Quốc'
+    'dalat'    => 'Đà Lạt',
+    'phuquoc'  => 'Phú Quốc'
+];
+
+// Nhãn hiển thị đồng bộ với form thêm xe & trang chi tiết
+$car_type_labels = [
+    'sedan'     => 'Sedan',
+    'suv'       => 'SUV',
+    'mpv'       => 'MPV',
+    'pickup'    => 'Bán tải',
+    'hatchback' => 'Hatchback',
+    'van'       => 'Xe khách'
+];
+
+$rental_type_labels = [
+    'self-drive' => 'Xe tự lái',
+    'with-driver'=> 'Xe có tài xế',
+    'long-term'  => 'Thuê dài hạn',
 ];
 ?>
 <!DOCTYPE html>
@@ -267,9 +283,19 @@ $locations = [
                                          onerror="this.src='<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : '../uploads/default-car.jpg'; ?>'">
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide"><?php echo htmlspecialchars($locations[$car['location']] ?? strtoupper($car['location'])); ?></p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                        <?php echo htmlspecialchars($locations[$car['location']] ?? strtoupper($car['location'])); ?>
+                                    </p>
                                     <h3 class="text-lg font-bold text-[#0f172a] dark:text-white"><?php echo htmlspecialchars($car['name']); ?></h3>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars(ucfirst($car['car_type'])); ?> • <?php echo htmlspecialchars($car['rental_type'] === 'self-drive' ? 'Tự lái' : ($car['rental_type'] === 'with-driver' ? 'Có tài xế' : 'Dài hạn')); ?></p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        <?php
+                                            $type_key = $car['car_type'];
+                                            $rt_key   = $car['rental_type'];
+                                            $type_label = $car_type_labels[$type_key] ?? ucfirst($type_key);
+                                            $rt_label   = $rental_type_labels[$rt_key] ?? $rt_key;
+                                            echo htmlspecialchars($type_label . ' • ' . $rt_label);
+                                        ?>
+                                    </p>
                                     <p class="text-primary font-bold text-xl mt-2"><?php echo number_format($car['price_per_day']); ?>đ<span class="text-sm text-gray-500">/ngày</span></p>
                                 </div>
                             </a>

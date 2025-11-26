@@ -70,17 +70,39 @@ $reviews = $result->fetch_all(MYSQLI_ASSOC);
 </head>
 <?php
 $main_image = '../uploads/' . ($car['image'] ?: 'default-car.jpg');
-$gallery_images = [
-    $main_image,
-    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1549921296-3b4a4f9536b8?auto=format&fit=crop&w=900&q=80'
+// Mapping hiển thị cho loại xe / hình thức thuê / địa điểm giống form thêm xe
+$car_type_labels = [
+    'sedan'     => 'Sedan',
+    'suv'       => 'SUV',
+    'mpv'       => 'MPV',
+    'pickup'    => 'Bán tải',
+    'hatchback' => 'Hatchback',
+    'van'       => 'Xe khách',
 ];
+
+$rental_type_labels = [
+    'self-drive' => 'Xe tự lái',
+    'with-driver'=> 'Xe có tài xế',
+    'long-term'  => 'Thuê dài hạn',
+];
+
+$location_labels = [
+    'hcm'     => 'TP. Hồ Chí Minh',
+    'hanoi'   => 'Hà Nội',
+    'danang'  => 'Đà Nẵng',
+    'cantho'  => 'Cần Thơ',
+    'nhatrang'=> 'Nha Trang',
+    'dalat'   => 'Đà Lạt',
+    'phuquoc' => 'Phú Quốc',
+];
+
+// Trạng thái xe
 $status_text = [
-    'available' => 'Còn xe',
-    'rented' => 'Đang cho thuê',
+    'available'   => 'Còn xe',
+    'rented'      => 'Đang cho thuê',
     'maintenance' => 'Bảo trì'
 ];
+
 $can_book = isLoggedIn()
     && $current_user_id !== (int)$car['owner_id']
     && $car['status'] === 'available';
@@ -99,19 +121,8 @@ $can_book = isLoggedIn()
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-8">
-                <div class="bg-cover bg-center min-h-[420px] rounded-2xl shadow" style="background-image:url('<?php echo htmlspecialchars($gallery_images[0]); ?>');"></div>
-                <div class="hidden lg:grid grid-cols-2 grid-rows-2 gap-2">
-                    <?php foreach (array_slice($gallery_images, 1) as $img): ?>
-                        <div class="bg-cover bg-center rounded-2xl shadow-sm min-h-[180px]" style="background-image:url('<?php echo htmlspecialchars($img); ?>');"></div>
-                    <?php endforeach; ?>
-                    <div class="relative bg-cover bg-center rounded-2xl shadow-sm min-h-[180px]" style="background-image:url('https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1000&q=80');">
-                        <div class="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
-                            <button class="bg-white/90 text-text-light text-sm font-bold py-2 px-4 rounded-full flex items-center gap-2">
-                                <span class="material-symbols-outlined text-lg">photo_library</span> Xem tất cả ảnh
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <div class="bg-cover bg-center min-h-[420px] rounded-2xl shadow" style="background-image:url('<?php echo htmlspecialchars($main_image); ?>');"></div>
+                <!-- Bỏ gallery ảnh mẫu, chỉ hiển thị ảnh chính của xe -->
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
@@ -119,7 +130,12 @@ $can_book = isLoggedIn()
                     <div class="border-b border-border-light pb-6">
                         <div class="flex flex-wrap justify-between gap-3 mb-4">
                             <div>
-                                <p class="text-sm text-secondary uppercase tracking-wide"><?php echo htmlspecialchars(ucfirst($car['car_type'])); ?></p>
+                                <p class="text-sm text-secondary uppercase tracking-wide">
+                                    <?php
+                                        $type_key = $car['car_type'];
+                                        echo htmlspecialchars($car_type_labels[$type_key] ?? ucfirst($type_key));
+                                    ?>
+                                </p>
                                 <h1 class="text-4xl font-black text-secondary"><?php echo htmlspecialchars($car['name']); ?></h1>
                                 <div class="flex items-center gap-2 text-gray-600 mt-2">
                                     <?php if ($car['avg_rating']): ?>
@@ -128,7 +144,12 @@ $can_book = isLoggedIn()
                                         <span class="text-gray-400">•</span>
                                     <?php endif; ?>
                                     <span class="material-symbols-outlined text-primary">location_on</span>
-                                    <span><?php echo htmlspecialchars($car['location']); ?></span>
+                                    <span>
+                                        <?php
+                                            $loc_key = $car['location'];
+                                            echo htmlspecialchars($location_labels[$loc_key] ?? $loc_key);
+                                        ?>
+                                    </span>
                                 </div>
                             </div>
                             <span class="inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold <?php echo $car['status'] === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'; ?>">
@@ -145,17 +166,32 @@ $can_book = isLoggedIn()
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">directions_car</span>
                                 <p class="text-sm text-gray-500 mt-2">Loại xe</p>
-                                <p class="font-semibold"><?php echo htmlspecialchars($car['car_type']); ?></p>
+                                <p class="font-semibold">
+                                    <?php
+                                        $type_key = $car['car_type'];
+                                        echo htmlspecialchars($car_type_labels[$type_key] ?? ucfirst($type_key));
+                                    ?>
+                                </p>
                             </div>
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">auto_mode</span>
                                 <p class="text-sm text-gray-500 mt-2">Hình thức thuê</p>
-                                <p class="font-semibold"><?php echo htmlspecialchars($car['rental_type']); ?></p>
+                                <p class="font-semibold">
+                                    <?php
+                                        $rt_key = $car['rental_type'];
+                                        echo htmlspecialchars($rental_type_labels[$rt_key] ?? $rt_key);
+                                    ?>
+                                </p>
                             </div>
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">location_on</span>
                                 <p class="text-sm text-gray-500 mt-2">Địa điểm</p>
-                                <p class="font-semibold"><?php echo htmlspecialchars($car['location']); ?></p>
+                                <p class="font-semibold">
+                                    <?php
+                                        $loc_key = $car['location'];
+                                        echo htmlspecialchars($location_labels[$loc_key] ?? $loc_key);
+                                    ?>
+                                </p>
                             </div>
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">payments</span>

@@ -65,7 +65,7 @@ $page_title = 'Về Chúng Tôi - CarRental';
                                      style='background-image: linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%), url("https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1600&h=800&fit=crop");'>
                                     <div class="flex flex-col gap-2">
                                         <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em] md:text-5xl">
-                                            Về Chúng Tôi
+                                            Về chúng tôi
                                         </h1>
                                         <h2 class="text-white text-sm font-normal leading-normal md:text-base">
                                             Câu chuyện đằng sau mỗi chuyến đi của bạn.
@@ -153,30 +153,37 @@ $page_title = 'Về Chúng Tôi - CarRental';
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
                                     <div class="text-center">
                                         <img class="rounded-full w-28 h-28 md:w-32 md:h-32 object-cover mx-auto mb-4 shadow-md" 
-                                             alt="Portrait of John Doe" 
-                                             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces"/>
-                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">John Doe</h3>
+                                             alt="Portrait of Nguyễn Việt Dũng" 
+                                             src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=faces"/>
+                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Nguyễn Việt Dũng</h3>
                                         <p class="text-primary text-xs md:text-sm">CEO & Founder</p>
                                     </div>
                                     <div class="text-center">
                                         <img class="rounded-full w-28 h-28 md:w-32 md:h-32 object-cover mx-auto mb-4 shadow-md" 
-                                             alt="Portrait of Jane Smith" 
-                                             src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=faces"/>
-                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Jane Smith</h3>
+                                             alt="Portrait of Nông Hùng Phi" 
+                                             src="https://images.unsplash.com/photo-1499996860823-5214fcc65f8f?w=400&h=400&fit=crop&crop=faces"/>
+                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Nông Hùng Phi</h3>
                                         <p class="text-primary text-xs md:text-sm">Head of Operations</p>
                                     </div>
                                     <div class="text-center">
                                         <img class="rounded-full w-28 h-28 md:w-32 md:h-32 object-cover mx-auto mb-4 shadow-md" 
-                                             alt="Portrait of Peter Jones" 
+                                             alt="Portrait of Trịnh Minh Khang" 
                                              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=faces"/>
-                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Peter Jones</h3>
+                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Trịnh Minh Khang</h3>
                                         <p class="text-primary text-xs md:text-sm">CTO</p>
                                     </div>
                                     <div class="text-center">
                                         <img class="rounded-full w-28 h-28 md:w-32 md:h-32 object-cover mx-auto mb-4 shadow-md" 
-                                             alt="Portrait of Sarah Miller" 
-                                             src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=faces"/>
-                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Sarah Miller</h3>
+                                             alt="Portrait of Phạm Nhật Huy" 
+                                             src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&h=400&fit=crop&crop=faces"/>
+                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Phạm Nhật Huy</h3>
+                                        <p class="text-primary text-xs md:text-sm">Marketing Director</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <img class="rounded-full w-28 h-28 md:w-32 md:h-32 object-cover mx-auto mb-4 shadow-md" 
+                                             alt="Portrait of Hồ Văn Duy" 
+                                             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces"/>
+                                        <h3 class="font-bold text-base md:text-lg text-secondary dark:text-white">Hồ Văn Duy</h3>
                                         <p class="text-primary text-xs md:text-sm">Marketing Director</p>
                                     </div>
                                 </div>
