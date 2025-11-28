@@ -10,7 +10,7 @@ $base_path = getBasePath();
 $current_page = $base_path ? $base_path . '/host/dashboard.php' : 'dashboard.php';
 $action_feedback = null;
 
-$available_views = ['overview', 'calendar', 'earnings', 'reviews', 'cars', 'messages', 'promotions'];
+$available_views = ['overview', 'calendar', 'earnings', 'reviews', 'cars'];
 $active_view = $_GET['view'] ?? 'overview';
 if (!in_array($active_view, $available_views, true)) {
     $active_view = 'overview';
@@ -26,18 +26,6 @@ if (!function_exists('hostNavClass')) {
 }
 
 $schema_queries = [
-    "CREATE TABLE IF NOT EXISTS car_availability_blocks (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        car_id INT NOT NULL,
-        owner_id INT NOT NULL,
-        start_date DATE NOT NULL,
-        end_date DATE NOT NULL,
-        note VARCHAR(255),
-        status ENUM('blocked','maintenance') DEFAULT 'blocked',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE,
-        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     "CREATE TABLE IF NOT EXISTS payout_requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         owner_id INT NOT NULL,
@@ -119,40 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $action_feedback = ['type' => 'error', 'message' => 'Không thể xóa xe.'];
             }
-            break;
-
-        case 'block_dates':
-            $block_car_id = (int)($_POST['block_car_id'] ?? 0);
-            $block_start = $_POST['block_start'] ?? '';
-            $block_end = $_POST['block_end'] ?? '';
-            $block_note = trim($_POST['block_note'] ?? '');
-
-            if (!$block_car_id || !$block_start || !$block_end) {
-                $action_feedback = ['type' => 'error', 'message' => 'Vui lòng chọn xe và ngày khóa lịch.'];
-                break;
-            }
-
-            if (strtotime($block_start) > strtotime($block_end)) {
-                $tmp = $block_start;
-                $block_start = $block_end;
-                $block_end = $tmp;
-            }
-
-            $car_check = $conn->prepare("SELECT id FROM cars WHERE id = ? AND owner_id = ?");
-            $car_check->bind_param("ii", $block_car_id, $user_id);
-            $car_check->execute();
-            if (!$car_check->get_result()->fetch_assoc()) {
-                $action_feedback = ['type' => 'error', 'message' => 'Không tìm thấy xe phù hợp.'];
-                break;
-            }
-
-            $block_stmt = $conn->prepare("INSERT INTO car_availability_blocks (car_id, owner_id, start_date, end_date, note, status) VALUES (?, ?, ?, ?, ?, 'blocked')");
-            $block_stmt->bind_param("iisss", $block_car_id, $user_id, $block_start, $block_end, $block_note);
-            if ($block_stmt->execute()) {
-                header('Location: ' . $current_page . '?view=calendar');
-                exit;
-            }
-            $action_feedback = ['type' => 'error', 'message' => 'Không thể khóa lịch.'];
             break;
 
         case 'request_payout':
@@ -281,18 +235,14 @@ $view_headings = [
     'calendar' => 'Lịch xe thông minh',
     'earnings' => 'Ví & Thu nhập',
     'reviews' => 'Quản lý đánh giá',
-    'cars' => 'Quản lý xe',
-    'messages' => 'Tin nhắn với khách',
-    'promotions' => 'Chiến dịch khuyến mãi'
+    'cars' => 'Quản lý xe'
 ];
 $view_subheadings = [
     'overview' => 'Cùng xem tổng quan hoạt động kinh doanh của bạn hôm nay.',
     'calendar' => 'Theo dõi trạng thái xe, đặt xe và khóa lịch chỉ với vài thao tác.',
     'earnings' => 'Kiểm tra số dư, giao dịch và yêu cầu rút tiền.',
     'reviews' => 'Lắng nghe phản hồi khách hàng và trả lời kịp thời.',
-    'cars' => 'Cập nhật thông tin xe, giá thuê và giấy tờ cần thiết.',
-    'messages' => 'Giữ liên lạc với khách về lịch nhận/trả và yêu cầu bổ sung.',
-    'promotions' => 'Tạo mã giảm giá để thu hút thêm khách hàng.'
+    'cars' => 'Cập nhật thông tin xe, giá thuê và giấy tờ cần thiết.'
 ];
 $heading_text = $view_headings[$active_view] ?? 'Bảng điều khiển chủ xe';
 $subheading_text = $view_subheadings[$active_view] ?? 'Theo dõi mọi hoạt động xe thuê của bạn.';
@@ -321,8 +271,6 @@ $rating_distribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
 $reviews_list = [];
 $review_replies = [];
 $review_flags_map = [];
-$message_threads = [];
-$promo_list = [];
 
 if ($active_view === 'calendar') {
     $status_colors = [
@@ -330,9 +278,7 @@ if ($active_view === 'calendar') {
         'confirmed' => '#0ea5e9',
         'completed' => '#22c55e',
         'cancelled' => '#9ca3af',
-        'rejected' => '#9ca3af',
-        'blocked' => '#6b7280',
-        'maintenance' => '#ef4444'
+        'rejected' => '#9ca3af'
     ];
 
     $booking_stmt = $conn->prepare("SELECT b.*, c.name as car_name, c.id as car_id, u.full_name as customer_name, u.phone
@@ -357,27 +303,6 @@ if ($active_view === 'calendar') {
             'customer' => $row['customer_name'],
             'phone' => $row['phone'],
             'dates' => date('d/m', strtotime($row['start_date'])) . ' - ' . date('d/m', strtotime($row['end_date']))
-        ];
-    }
-
-    $block_stmt = $conn->prepare("SELECT b.*, c.name as car_name FROM car_availability_blocks b JOIN cars c ON b.car_id = c.id WHERE b.owner_id = ?");
-    $block_stmt->bind_param("i", $user_id);
-    $block_stmt->execute();
-    $block_res = $block_stmt->get_result();
-    while ($block = $block_res->fetch_assoc()) {
-        $calendar_events[] = [
-            'id' => 'block-' . $block['id'],
-            'title' => $block['car_name'] . ' - Khóa lịch',
-            'start' => $block['start_date'],
-            'end' => date('Y-m-d', strtotime($block['end_date'] . ' +1 day')),
-            'color' => $status_colors['blocked'],
-            'car' => $block['car_name'],
-            'carId' => (int)$block['car_id'],
-            'status' => 'blocked',
-            'customer' => 'Bạn đã khóa lịch',
-            'phone' => '',
-            'note' => $block['note'],
-            'dates' => date('d/m', strtotime($block['start_date'])) . ' - ' . date('d/m', strtotime($block['end_date']))
         ];
     }
 
@@ -515,18 +440,6 @@ if ($active_view === 'reviews') {
     }
 }
 
-if ($active_view === 'messages') {
-    $message_stmt = $conn->prepare("SELECT b.*, c.name as car_name, u.full_name as customer_name, u.phone
-        FROM bookings b
-        JOIN cars c ON b.car_id = c.id
-        JOIN users u ON b.customer_id = u.id
-        WHERE c.owner_id = ?
-        ORDER BY b.created_at DESC
-        LIMIT 8");
-    $message_stmt->bind_param("i", $user_id);
-    $message_stmt->execute();
-    $message_threads = $message_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
 ?>
 <!DOCTYPE html>
 <html class="light" lang="vi">
@@ -540,8 +453,7 @@ if ($active_view === 'messages') {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <?php if ($active_view === 'calendar'): ?>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css"/>
-        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <?php endif; ?>
     <?php if ($active_view === 'earnings'): ?>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -572,6 +484,41 @@ if ($active_view === 'messages') {
         }
         .material-symbols-outlined.fill {
             font-variation-settings: 'FILL' 1;
+        }
+        /* FullCalendar custom styles */
+        .fc {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .fc .fc-toolbar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .fc .fc-button-primary {
+            background-color: #f98006;
+            border-color: #f98006;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #e07005;
+            border-color: #e07005;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+            background-color: #d06005;
+            border-color: #d06005;
+        }
+        .fc .fc-daygrid-event {
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 0.75rem;
+        }
+        .fc .fc-event-title {
+            font-weight: 500;
+        }
+        .fc-theme-standard td, .fc-theme-standard th {
+            border-color: #e6e0db;
+        }
+        .fc-theme-standard .fc-scrollgrid {
+            border-color: #e6e0db;
         }
     </style>
 </head>
@@ -607,14 +554,6 @@ if ($active_view === 'messages') {
                         <a class="flex items-center gap-3 rounded-lg px-3 py-2 <?php echo hostNavClass('cars', $active_view); ?>" href="<?php echo $current_page; ?>?view=cars">
                             <span class="material-symbols-outlined <?php echo $active_view === 'cars' ? 'fill' : ''; ?>">directions_car</span>
                             <p class="text-sm leading-normal">Quản lý xe</p>
-                        </a>
-                        <a class="flex items-center gap-3 rounded-lg px-3 py-2 <?php echo hostNavClass('messages', $active_view); ?>" href="<?php echo $current_page; ?>?view=messages">
-                            <span class="material-symbols-outlined <?php echo $active_view === 'messages' ? 'fill' : ''; ?>">chat</span>
-                            <p class="text-sm leading-normal">Tin nhắn</p>
-                        </a>
-                        <a class="flex items-center gap-3 rounded-lg px-3 py-2 <?php echo hostNavClass('promotions', $active_view); ?>" href="<?php echo $current_page; ?>?view=promotions">
-                            <span class="material-symbols-outlined <?php echo $active_view === 'promotions' ? 'fill' : ''; ?>">sell</span>
-                            <p class="text-sm leading-normal">Khuyến mãi</p>
                         </a>
                     </div>
                 </div>
@@ -820,43 +759,6 @@ if ($active_view === 'messages') {
                 <?php elseif ($active_view === 'calendar'): ?>
                     <div class="grid lg:grid-cols-[2fr_1fr] gap-6">
                         <div class="bg-white rounded-xl border border-border-color p-5">
-                            <div class="flex flex-wrap gap-4 mb-4 items-center">
-                                <div class="flex-1">
-                                    <label for="calendar-car-filter" class="text-sm font-semibold text-text-muted">Lọc theo xe</label>
-                                    <select id="calendar-car-filter" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3">
-                                        <option value="">Tất cả xe</option>
-                                        <?php foreach ($cars as $car): ?>
-                                            <option value="<?php echo (int)$car['id']; ?>"><?php echo htmlspecialchars($car['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <form method="POST" class="flex flex-wrap gap-3 items-end">
-                                    <input type="hidden" name="action" value="block_dates">
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Xe</label>
-                                        <select name="block_car_id" class="mt-1 rounded-lg border border-border-color h-11 px-3" required>
-                                            <?php foreach ($cars as $car): ?>
-                                                <option value="<?php echo (int)$car['id']; ?>"><?php echo htmlspecialchars($car['name']); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Từ ngày</label>
-                                        <input type="date" name="block_start" class="mt-1 rounded-lg border border-border-color h-11 px-3" required>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Đến ngày</label>
-                                        <input type="date" name="block_end" class="mt-1 rounded-lg border border-border-color h-11 px-3" required>
-                                    </div>
-                                    <div class="flex-1 min-w-[180px]">
-                                        <label class="text-sm font-semibold text-text-muted">Ghi chú</label>
-                                        <input type="text" name="block_note" class="mt-1 rounded-lg border border-border-color h-11 px-3" placeholder="Bảo trì, dùng xe riêng,...">
-                                    </div>
-                                    <button type="submit" class="inline-flex items-center gap-2 rounded-lg h-11 px-4 bg-primary text-white font-semibold hover:bg-primary/90">
-                                        <span class="material-symbols-outlined">lock</span> Khóa lịch
-                                    </button>
-                                </form>
-                            </div>
                             <div id="car-calendar"></div>
                         </div>
                         <div class="flex flex-col gap-4">
@@ -882,11 +784,10 @@ if ($active_view === 'messages') {
                             <div class="bg-white rounded-xl border border-border-color p-5">
                                 <h3 class="text-lg font-bold text-text-main mb-3">Quy ước màu</h3>
                                 <ul class="space-y-2 text-sm text-text-muted">
-                                    <li><span class="inline-block w-3 h-3 bg-[#22c55e] rounded-full mr-2"></span>Đã đặt / Hoàn thành</li>
+                                    <li><span class="inline-block w-3 h-3 bg-[#22c55e] rounded-full mr-2"></span>Hoàn thành</li>
                                     <li><span class="inline-block w-3 h-3 bg-[#0ea5e9] rounded-full mr-2"></span>Đã xác nhận</li>
                                     <li><span class="inline-block w-3 h-3 bg-[#f2c94c] rounded-full mr-2"></span>Chờ duyệt</li>
-                                    <li><span class="inline-block w-3 h-3 bg-[#ef4444] rounded-full mr-2"></span>Bảo trì / Bận</li>
-                                    <li><span class="inline-block w-3 h-3 bg-[#6b7280] rounded-full mr-2"></span>Khóa lịch</li>
+                                    <li><span class="inline-block w-3 h-3 bg-[#9ca3af] rounded-full mr-2"></span>Đã hủy</li>
                                 </ul>
                             </div>
                         </div>
@@ -1123,162 +1024,91 @@ if ($active_view === 'messages') {
                         <?php endif; ?>
                     </div>
                 <?php elseif ($active_view === 'cars'): ?>
-                    <div class="rounded-xl border border-border-color bg-white p-6 space-y-4">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="rounded-xl border border-border-color bg-white p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
                             <div>
-                                <h3 class="text-lg font-bold text-text-main">Danh sách xe</h3>
-                                <p class="text-sm text-text-muted">Quản lý thông tin, hình ảnh và giấy tờ từng xe.</p>
+                                <h3 class="text-lg font-bold text-text-main">Danh sách xe của bạn</h3>
+                                <p class="text-sm text-text-muted"><?php echo count($cars); ?> xe đang quản lý</p>
                             </div>
-                            <a href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'add-car.php'; ?>" class="inline-flex items-center gap-2 rounded-lg h-11 px-4 bg-primary text-white font-semibold">
-                                <span class="material-symbols-outlined">directions_car</span> Thêm xe
+                            <a href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'add-car.php'; ?>" class="inline-flex items-center gap-2 rounded-lg h-11 px-5 bg-primary text-white font-semibold hover:bg-primary/90">
+                                <span class="material-symbols-outlined">add</span> Thêm xe mới
                             </a>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm">
-                                <thead>
-                                <tr class="text-left text-text-muted border-b border-border-color">
-                                    <th class="py-3">Tên xe</th>
-                                    <th class="py-3">Loại</th>
-                                    <th class="py-3">Giá/ngày</th>
-                                    <th class="py-3">Trạng thái</th>
-                                    <th class="py-3">Hành động</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <?php if (empty($cars)): ?>
-                                    <tr><td colspan="5" class="py-6 text-center text-text-muted">Chưa có xe nào.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($cars as $car):
-                                        $status_text = [
-                                            'available' => 'Đang trống',
-                                            'rented' => 'Đã cho thuê',
-                                            'maintenance' => 'Bảo trì'
-                                        ];
-                                    ?>
-                                        <tr class="border-b border-border-color/60">
-                                            <td class="py-3 font-semibold text-text-main"><?php echo htmlspecialchars($car['name']); ?></td>
-                                            <td class="py-3 text-text-muted"><?php echo htmlspecialchars(ucfirst($car['car_type'])); ?></td>
-                                            <td class="py-3 font-semibold text-text-main"><?php echo number_format($car['price_per_day']); ?> đ</td>
-                                            <td class="py-3 text-text-muted"><?php echo $status_text[$car['status']] ?? $car['status']; ?></td>
-                                            <td class="py-3">
-                                                <div class="flex flex-wrap gap-2">
-                                                    <a href="<?php echo $base_path ? $base_path . '/client/car-detail.php?id=' . $car['id'] : '../client/car-detail.php?id=' . $car['id']; ?>" class="px-3 py-1 rounded-lg border border-border-color text-xs">Xem</a>
-                                                    <a href="<?php echo $base_path ? $base_path . '/host/edit-car.php?id=' . $car['id'] : 'edit-car.php?id=' . $car['id']; ?>" class="px-3 py-1 rounded-lg border border-border-color text-xs">Sửa</a>
-                                                    <form method="POST" onsubmit="return confirm('Bạn chắc chắn muốn xóa xe này?');">
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <input type="hidden" name="car_id" value="<?php echo (int)$car['id']; ?>">
-                                                        <button type="submit" class="px-3 py-1 rounded-lg border border-red-200 text-red-600 text-xs">Xóa</button>
-                                                    </form>
+                        <?php if (empty($cars)): ?>
+                            <div class="text-center py-12">
+                                <span class="material-symbols-outlined text-6xl text-text-muted mb-4">directions_car</span>
+                                <p class="text-text-muted mb-4">Bạn chưa có xe nào.</p>
+                                <a href="<?php echo $base_path ? $base_path . '/host/add-car.php' : 'add-car.php'; ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-semibold">
+                                    <span class="material-symbols-outlined">add</span> Thêm xe đầu tiên
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <div class="space-y-4">
+                                <?php foreach ($cars as $car):
+                                    $status_config = [
+                                        'available' => ['text' => 'Sẵn sàng', 'class' => 'bg-green-100 text-green-700'],
+                                        'rented' => ['text' => 'Đang thuê', 'class' => 'bg-blue-100 text-blue-700'],
+                                        'maintenance' => ['text' => 'Tạm ẩn', 'class' => 'bg-gray-100 text-gray-600']
+                                    ];
+                                    $status = $status_config[$car['status']] ?? ['text' => $car['status'], 'class' => 'bg-gray-100 text-gray-600'];
+                                ?>
+                                    <div class="flex flex-col sm:flex-row gap-4 p-4 border border-border-color rounded-xl hover:shadow-md transition-shadow">
+                                        <img src="<?php echo $base_path ? $base_path . '/uploads/' : '../uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>" 
+                                             alt="<?php echo htmlspecialchars($car['name']); ?>" 
+                                             class="w-full sm:w-40 h-28 object-cover rounded-lg"
+                                             onerror="this.src='<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : '../uploads/default-car.jpg'; ?>'">
+                                        <div class="flex-1">
+                                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                                <div>
+                                                    <h4 class="font-bold text-text-main"><?php echo htmlspecialchars($car['name']); ?></h4>
+                                                    <p class="text-sm text-text-muted"><?php echo ucfirst($car['car_type']); ?> · <?php echo number_format($car['price_per_day']); ?>đ/ngày</p>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="rounded-xl border border-border-color bg-white p-6">
-                        <h3 class="text-lg font-bold text-text-main mb-3">Checklist cập nhật</h3>
-                        <ul class="list-disc pl-6 text-sm text-text-muted space-y-2">
-                            <li>Cập nhật ảnh đẹp, rõ nét cho từng xe.</li>
-                            <li>Tải lên giấy tờ: đăng kiểm, bảo hiểm, giấy phép kinh doanh nếu có.</li>
-                            <li>Thiết lập giá cuối tuần, giá lễ (nếu cần) trong phần chỉnh sửa xe.</li>
-                            <li>Kiểm tra trạng thái xe trước khi xác nhận chuyến mới.</li>
-                        </ul>
-                    </div>
-                <?php elseif ($active_view === 'messages'): ?>
-                    <div class="grid lg:grid-cols-[320px_1fr] gap-6">
-                        <div class="rounded-xl border border-border-color bg-white">
-                            <div class="p-4 border-b border-border-color">
-                                <p class="text-sm text-text-muted">Khách gần đây</p>
-                            </div>
-                            <div class="divide-y divide-border-color max-h-[520px] overflow-y-auto">
-                                <?php if (empty($message_threads)): ?>
-                                    <p class="p-4 text-sm text-text-muted">Chưa có tin nhắn nào.</p>
-                                <?php else: ?>
-                                    <?php foreach ($message_threads as $thread): ?>
-                                        <div class="p-4 hover:bg-[#fdf1e7] cursor-pointer">
-                                            <p class="font-semibold text-text-main"><?php echo htmlspecialchars($thread['customer_name']); ?></p>
-                                            <p class="text-sm text-text-muted"><?php echo htmlspecialchars($thread['car_name']); ?></p>
-                                            <p class="text-xs text-text-muted mt-1"><?php echo date('d/m H:i', strtotime($thread['created_at'])); ?></p>
+                                                <span class="px-3 py-1 rounded-full text-xs font-semibold <?php echo $status['class']; ?>"><?php echo $status['text']; ?></span>
+                                            </div>
+                                            <div class="flex flex-wrap gap-4 mt-3 text-sm text-text-muted">
+                                                <span class="flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-base">luggage</span>
+                                                    <?php echo $car['total_bookings']; ?> chuyến
+                                                </span>
+                                                <?php if ($car['avg_rating']): ?>
+                                                <span class="flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-base text-yellow-500">star</span>
+                                                    <?php echo number_format($car['avg_rating'], 1); ?>
+                                                </span>
+                                                <?php endif; ?>
+                                                <?php if ($car['pending_bookings'] > 0): ?>
+                                                <span class="flex items-center gap-1 text-primary font-semibold">
+                                                    <span class="material-symbols-outlined text-base">notifications</span>
+                                                    <?php echo $car['pending_bookings']; ?> yêu cầu mới
+                                                </span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="flex flex-wrap gap-2 mt-4">
+                                                <a href="<?php echo $base_path ? $base_path . '/host/car-bookings.php?car_id=' . $car['id'] : 'car-bookings.php?car_id=' . $car['id']; ?>" 
+                                                   class="inline-flex items-center gap-1 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90">
+                                                    <span class="material-symbols-outlined text-base">list_alt</span> Đơn đặt
+                                                </a>
+                                                <a href="<?php echo $base_path ? $base_path . '/host/edit-car.php?id=' . $car['id'] : 'edit-car.php?id=' . $car['id']; ?>" 
+                                                   class="inline-flex items-center gap-1 px-4 py-2 bg-gray-100 text-text-main text-xs font-semibold rounded-lg hover:bg-gray-200">
+                                                    <span class="material-symbols-outlined text-base">edit</span> Sửa
+                                                </a>
+                                                <a href="<?php echo $base_path ? $base_path . '/client/car-detail.php?id=' . $car['id'] : '../client/car-detail.php?id=' . $car['id']; ?>" target="_blank"
+                                                   class="inline-flex items-center gap-1 px-4 py-2 bg-gray-100 text-text-main text-xs font-semibold rounded-lg hover:bg-gray-200">
+                                                    <span class="material-symbols-outlined text-base">visibility</span> Xem
+                                                </a>
+                                                <form method="POST" class="inline-flex" onsubmit="return confirm('Bạn chắc chắn muốn xóa xe này? Hành động này không thể hoàn tác.');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="car_id" value="<?php echo (int)$car['id']; ?>">
+                                                    <button type="submit" class="inline-flex items-center gap-1 px-4 py-2 bg-red-50 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-100">
+                                                        <span class="material-symbols-outlined text-base">delete</span> Xóa
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="rounded-xl border border-border-color bg-white flex flex-col">
-                            <div class="p-4 border-b border-border-color">
-                                <p class="font-bold text-text-main">Hộp thoại</p>
-                                <p class="text-sm text-text-muted">Tính năng chat realtime sẽ được bổ sung sớm.</p>
-                            </div>
-                            <div class="flex-1 p-6 space-y-4 overflow-y-auto">
-                                <div class="bg-primary/5 rounded-2xl px-4 py-3 max-w-[70%] text-sm text-text-main">
-                                    <p><strong>Khách:</strong> Anh cho mình nhận xe sớm hơn 30 phút được không?</p>
-                                    <span class="text-xs text-text-muted mt-1 block">09:15</span>
-                                </div>
-                                <div class="bg-gray-100 rounded-2xl px-4 py-3 max-w-[70%] text-sm text-text-main ml-auto">
-                                    <p><strong>Bạn:</strong> Được nhé, mình sẽ chuẩn bị xe từ 7h30 cho bạn.</p>
-                                    <span class="text-xs text-text-muted mt-1 block text-right">09:17</span>
-                                </div>
-                            </div>
-                            <div class="p-4 border-t border-border-color">
-                                <form class="flex gap-3">
-                                    <input type="text" class="flex-1 rounded-full border border-border-color h-11 px-4" placeholder="Trả lời khách...">
-                                    <button type="button" class="rounded-full h-11 w-11 bg-primary text-white flex items-center justify-center">
-                                        <span class="material-symbols-outlined">send</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                <?php elseif ($active_view === 'promotions'): ?>
-                    <div class="grid lg:grid-cols-2 gap-6">
-                        <div class="rounded-xl border border-border-color bg-white p-6">
-                            <h3 class="text-lg font-bold text-text-main mb-4">Tạo mã khuyến mãi</h3>
-                            <form id="promo-form" class="space-y-3">
-                                <div>
-                                    <label class="text-sm font-semibold text-text-muted">Tên chiến dịch</label>
-                                    <input type="text" name="promo_name" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3" placeholder="Ưu đãi tháng 11" required>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Mức giảm (%)</label>
-                                        <input type="number" name="promo_percent" min="1" max="50" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3" placeholder="10" required>
                                     </div>
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Giới hạn lượt</label>
-                                        <input type="number" name="promo_limit" min="1" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3" placeholder="20" required>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="text-sm font-semibold text-text-muted">Áp dụng cho xe</label>
-                                    <select name="promo_car" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3">
-                                        <option value="all">Tất cả xe</option>
-                                        <?php foreach ($cars as $car): ?>
-                                            <option value="<?php echo htmlspecialchars($car['name']); ?>"><?php echo htmlspecialchars($car['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Bắt đầu</label>
-                                        <input type="date" name="promo_start" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3" required>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-semibold text-text-muted">Kết thúc</label>
-                                        <input type="date" name="promo_end" class="mt-1 w-full rounded-lg border border-border-color h-11 px-3" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="w-full rounded-lg h-11 bg-primary text-white font-semibold">Tạo mã giảm giá</button>
-                            </form>
-                        </div>
-                        <div class="rounded-xl border border-border-color bg-white p-6">
-                            <h3 class="text-lg font-bold text-text-main mb-4">Mã ưu đãi gần đây</h3>
-                            <div id="promo-list" class="space-y-3 text-sm text-text-muted">
-                                <p>Chưa có chiến dịch nào. Tạo mã đầu tiên để thu hút khách!</p>
+                                <?php endforeach; ?>
                             </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -1318,26 +1148,26 @@ if ($active_view === 'messages') {
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                    right: 'dayGridMonth,dayGridWeek,listMonth'
+                },
+                buttonText: {
+                    today: 'Hôm nay',
+                    month: 'Tháng',
+                    week: 'Tuần',
+                    list: 'Danh sách'
                 },
                 events: calendarEvents,
+                eventDisplay: 'block',
                 eventClick(info) {
                     toggleEventModal(true, info.event.extendedProps);
+                },
+                eventDidMount(info) {
+                    // Add tooltip
+                    info.el.title = info.event.title;
                 }
             });
             calendar.render();
-
-            const filter = document.getElementById('calendar-car-filter');
-            filter.addEventListener('change', () => {
-                const selected = filter.value;
-                calendar.getEvents().forEach(event => {
-                    if (!selected || event.extendedProps.carId == selected) {
-                        event.setProp('display', 'auto');
-                    } else {
-                        event.setProp('display', 'none');
-                    }
-                });
-            });
+            console.log('Calendar rendered with', calendarEvents.length, 'events');
         }
 
         document.getElementById('calendar-event-modal')?.addEventListener('click', (e) => {
@@ -1374,33 +1204,6 @@ if ($active_view === 'messages') {
                 }
             });
         }
-        <?php endif; ?>
-
-        <?php if ($active_view === 'promotions'): ?>
-        const promoForm = document.getElementById('promo-form');
-        const promoList = document.getElementById('promo-list');
-        promoForm?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const formData = new FormData(promoForm);
-            const promo = {
-                name: formData.get('promo_name'),
-                percent: formData.get('promo_percent'),
-                limit: formData.get('promo_limit'),
-                car: formData.get('promo_car'),
-                start: formData.get('promo_start'),
-                end: formData.get('promo_end')
-            };
-            const card = document.createElement('div');
-            card.className = 'border border-border-color rounded-lg p-3';
-            card.innerHTML = `<p class="font-semibold text-text-main">${promo.name}</p>
-                <p class="text-sm text-text-muted">Giảm ${promo.percent}% · ${promo.limit} lượt · ${promo.car === 'all' ? 'Tất cả xe' : promo.car}</p>
-                <p class="text-xs text-text-muted">Hiệu lực: ${promo.start} → ${promo.end}</p>`;
-            if (promoList.children.length && promoList.firstElementChild.textContent.includes('Chưa có')) {
-                promoList.innerHTML = '';
-            }
-            promoList.prepend(card);
-            promoForm.reset();
-        });
         <?php endif; ?>
     });
 </script>

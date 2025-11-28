@@ -44,12 +44,6 @@ $nav_items = [
         'href' => $base_path ? $base_path . '/client/addresses.php' : 'addresses.php',
     ],
     [
-        'key' => 'notifications',
-        'label' => 'Thông báo',
-        'icon' => 'notifications',
-        'href' => $base_path ? $base_path . '/client/notifications.php' : 'notifications.php',
-    ],
-    [
         'key' => 'logout',
         'label' => 'Đăng xuất',
         'icon' => 'logout',

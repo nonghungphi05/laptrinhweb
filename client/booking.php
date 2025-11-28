@@ -26,6 +26,22 @@ if ($result->num_rows === 0) {
 
 $car = $result->fetch_assoc();
 
+// Mapping hiển thị cho loại xe và hình thức thuê
+$car_type_labels = [
+    'sedan'     => 'Sedan',
+    'suv'       => 'SUV',
+    'mpv'       => 'MPV',
+    'pickup'    => 'Bán tải',
+    'hatchback' => 'Hatchback',
+    'van'       => 'Xe khách',
+];
+
+$rental_type_labels = [
+    'self-drive'  => 'Xe tự lái',
+    'with-driver' => 'Xe có tài xế',
+    'long-term'   => 'Thuê dài hạn',
+];
+
 $error = '';
 $success = '';
 
@@ -145,8 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                             <div class="text-sm text-slate space-y-1">
-                                <p><strong>Loại xe:</strong> <?php echo htmlspecialchars(ucfirst($car['car_type'])); ?></p>
-                                <p><strong>Hình thức thuê:</strong> <?php echo htmlspecialchars($car['rental_type']); ?></p>
+                                <p><strong>Loại xe:</strong> <?php echo htmlspecialchars($car_type_labels[$car['car_type']] ?? ucfirst($car['car_type'])); ?></p>
+                                <p><strong>Hình thức thuê:</strong> <?php echo htmlspecialchars($rental_type_labels[$car['rental_type']] ?? $car['rental_type']); ?></p>
                                 <p><strong>Giá thuê:</strong> <?php echo number_format($car['price_per_day']); ?> VNĐ/ngày</p>
                             </div>
                         </div>

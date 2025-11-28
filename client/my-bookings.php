@@ -21,7 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id']))
     $cancel_id = (int) $_POST['cancel_booking_id'];
     $redirect_status = $_POST['current_status'] ?? $status_filter;
 
-    $stmt = $conn->prepare("SELECT status, start_date FROM bookings WHERE id = ? AND customer_id = ?");
+    $stmt = $conn->prepare("SELECT b.status, b.start_date, b.total_price, b.created_at, p.status as payment_status, p.amount as paid_amount 
+        FROM bookings b 
+        LEFT JOIN payments p ON b.id = p.booking_id AND p.status = 'completed'
+        WHERE b.id = ? AND b.customer_id = ?");
     $stmt->bind_param("ii", $cancel_id, $user_id);
     $stmt->execute();
     $booking_to_cancel = $stmt->get_result()->fetch_assoc();
@@ -33,15 +36,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id']))
 
     $today = date('Y-m-d');
     $can_cancel = false;
+    $refund_amount = 0;
+    $refund_message = '';
 
-    if ($booking_to_cancel['status'] === 'pending' && $booking_to_cancel['start_date'] > $today) {
+    // Chỉ cho phép hủy nếu chưa đến ngày nhận xe
+    if ($booking_to_cancel['start_date'] > $today && in_array($booking_to_cancel['status'], ['pending', 'confirmed'])) {
         $can_cancel = true;
-    } elseif ($booking_to_cancel['status'] === 'confirmed' && $booking_to_cancel['start_date'] > $today) {
-        $pay_check = $conn->prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'completed'");
-        $pay_check->bind_param("i", $cancel_id);
-        $pay_check->execute();
-        $has_completed_payment = $pay_check->get_result()->num_rows > 0;
-        $can_cancel = !$has_completed_payment;
+        
+        // Tính số tiền hoàn trả nếu đã thanh toán
+        if ($booking_to_cancel['payment_status'] === 'completed' && $booking_to_cancel['paid_amount'] > 0) {
+            $booking_created = strtotime($booking_to_cancel['created_at']);
+            $hours_since_booking = (time() - $booking_created) / 3600;
+            
+            if ($hours_since_booking <= 24) {
+                // Hủy trong 24h đầu: hoàn 100%
+                $refund_amount = $booking_to_cancel['paid_amount'];
+                $refund_message = 'Hoàn tiền 100% (' . number_format($refund_amount) . ' VNĐ) - Hủy trong 24h đầu.';
+            } else {
+                // Sau 24h: hoàn 80% (phí 20%)
+                $refund_amount = $booking_to_cancel['paid_amount'] * 0.8;
+                $fee = $booking_to_cancel['paid_amount'] * 0.2;
+                $refund_message = 'Hoàn tiền 80% (' . number_format($refund_amount) . ' VNĐ) - Phí hủy 20% (' . number_format($fee) . ' VNĐ).';
+            }
+        }
     }
 
     if ($can_cancel) {
@@ -49,20 +66,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id']))
         $stmt->bind_param("i", $cancel_id);
         $stmt->execute();
 
-        $pay_update = $conn->prepare("UPDATE payments SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'");
-        $pay_update->bind_param("i", $cancel_id);
-        $pay_update->execute();
+        // Cập nhật payment status
+        if ($booking_to_cancel['payment_status'] === 'completed' && $refund_amount > 0) {
+            // Đánh dấu payment là refunded và lưu số tiền hoàn
+            $pay_update = $conn->prepare("UPDATE payments SET status = 'refunded' WHERE booking_id = ? AND status = 'completed'");
+            $pay_update->bind_param("i", $cancel_id);
+            $pay_update->execute();
+            
+            $success_msg = 'Đã hủy chuyến thành công. ' . $refund_message;
+        } else {
+            $pay_update = $conn->prepare("UPDATE payments SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'");
+            $pay_update->bind_param("i", $cancel_id);
+            $pay_update->execute();
+            
+            $success_msg = 'Đã hủy chuyến thành công.';
+        }
 
-        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&success=" . urlencode('Đã hủy chuyến thành công.'));
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&success=" . urlencode($success_msg));
         exit();
     } else {
-        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Không thể hủy chuyến này.'));
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Không thể hủy chuyến này. Chỉ có thể hủy trước ngày nhận xe.'));
         exit();
     }
 }
 
 // Lấy danh sách đơn đặt
-$sql = "SELECT b.*, c.name as car_name, c.image as car_image,
+$sql = "SELECT b.*, b.created_at as booking_created_at, c.name as car_name, c.image as car_image,
     p.status as payment_status, p.payment_method, p.amount as payment_amount
     FROM bookings b
     JOIN cars c ON b.car_id = c.id
@@ -311,6 +340,13 @@ function getActiveStatus($booking) {
                                                 <?php endif; ?>
                                             </div>
                                             <div class="flex flex-wrap gap-2 pt-2 mt-auto">
+                                                <?php if ($booking['payment_status'] !== 'completed' && $booking['status'] !== 'cancelled' && $booking['status'] !== 'rejected'): ?>
+                                                <a href="<?php echo $base_path ? $base_path . '/client/payment.php?booking_id=' . $booking['id'] : 'payment.php?booking_id=' . $booking['id']; ?>" 
+                                                   class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-emerald-500 text-white text-sm font-medium leading-normal hover:bg-emerald-600 transition-colors">
+                                                    <span class="material-symbols-outlined text-base">payments</span>
+                                                    <span class="truncate">Thanh toán</span>
+                                                </a>
+                                                <?php endif; ?>
                                                 <a href="<?php echo $base_path ? $base_path . '/client/car-detail.php?id=' . $booking['car_id'] : 'car-detail.php?id=' . $booking['car_id']; ?>" 
                                                    class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-gray-100 dark:bg-gray-700 text-text-light dark:text-text-dark text-sm font-medium leading-normal hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                                                     <span class="material-symbols-outlined text-base">visibility</span>
@@ -331,24 +367,40 @@ function getActiveStatus($booking) {
                                                 <?php else: ?>
                                                     <?php
                                                         $booking_start_ts = strtotime($booking['start_date']);
-                                                        $allow_cancel = ($booking['status'] === 'pending' && $booking_start_ts > time())
-                                                            || ($booking['status'] === 'confirmed' && $booking_start_ts > time() && $booking['payment_status'] !== 'completed');
+                                                        $today_ts = strtotime(date('Y-m-d'));
+                                                        // Cho phép hủy nếu chưa đến ngày nhận xe (kể cả đã thanh toán)
+                                                        $allow_cancel = in_array($booking['status'], ['pending', 'confirmed']) && $booking_start_ts > $today_ts;
+                                                        
+                                                        // Tính thông tin hoàn tiền nếu đã thanh toán
+                                                        $refund_info = '';
+                                                        $confirm_message = 'Bạn chắc chắn muốn hủy chuyến này?';
+                                                        if ($allow_cancel && $booking['payment_status'] === 'completed') {
+                                                            $booking_created = strtotime($booking['booking_created_at']);
+                                                            $hours_since_booking = (time() - $booking_created) / 3600;
+                                                            
+                                                            if ($hours_since_booking <= 24) {
+                                                                $refund_percent = 100;
+                                                                $refund_amount = $booking['total_price'];
+                                                                $refund_info = 'Hoàn 100%';
+                                                                $confirm_message = 'Bạn sẽ được hoàn 100% (' . number_format($refund_amount) . ' VNĐ) do hủy trong 24h đầu. Xác nhận hủy?';
+                                                            } else {
+                                                                $refund_percent = 80;
+                                                                $refund_amount = $booking['total_price'] * 0.8;
+                                                                $fee = $booking['total_price'] * 0.2;
+                                                                $refund_info = 'Hoàn 80%';
+                                                                $confirm_message = 'Bạn sẽ được hoàn 80% (' . number_format($refund_amount) . ' VNĐ). Phí hủy 20% (' . number_format($fee) . ' VNĐ). Xác nhận hủy?';
+                                                            }
+                                                        }
                                                     ?>
                                                     <?php if ($allow_cancel): ?>
-                                                    <form method="POST" class="inline-flex" onsubmit="return confirm('Bạn chắc chắn muốn hủy chuyến này?');">
+                                                    <form method="POST" class="inline-flex" onsubmit="return confirm('<?php echo $confirm_message; ?>');">
                                                         <input type="hidden" name="cancel_booking_id" value="<?php echo $booking['id']; ?>">
                                                         <input type="hidden" name="current_status" value="<?php echo htmlspecialchars($status_filter); ?>">
-                                                        <button type="submit" class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-red-500/10 text-red-600 dark:bg-red-900/50 dark:text-red-300 text-sm font-medium leading-normal hover:bg-red-500/20 transition-colors">
+                                                        <button type="submit" class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-red-500/10 text-red-600 dark:bg-red-900/50 dark:text-red-300 text-sm font-medium leading-normal hover:bg-red-500/20 transition-colors" title="<?php echo $refund_info ? 'Chính sách: ' . $refund_info : ''; ?>">
                                                             <span class="material-symbols-outlined text-base">cancel</span>
-                                                            <span class="truncate">Hủy chuyến</span>
+                                                            <span class="truncate">Hủy chuyến<?php echo $refund_info ? ' (' . $refund_info . ')' : ''; ?></span>
                                                         </button>
                                                     </form>
-                                                    <?php elseif ($booking['payment_status'] !== 'completed'): ?>
-                                                    <a href="<?php echo $base_path ? $base_path . '/client/payment.php?booking_id=' . $booking['id'] : 'payment.php?booking_id=' . $booking['id']; ?>" 
-                                                       class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-medium leading-normal hover:bg-opacity-90 transition-opacity">
-                                                        <span class="material-symbols-outlined text-base">payments</span>
-                                                        <span class="truncate">Thanh toán</span>
-                                                    </a>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>

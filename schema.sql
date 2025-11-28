@@ -12,9 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') DEFAULT 'user',
+    role ENUM('user', 'admin', 'host') DEFAULT 'user',
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
+    avatar VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -26,6 +27,9 @@ CREATE TABLE IF NOT EXISTS cars (
     image VARCHAR(255),
     price_per_day DECIMAL(10,2) NOT NULL,
     car_type VARCHAR(50) NOT NULL,
+    seats INT DEFAULT 4,
+    transmission ENUM('auto', 'manual') DEFAULT 'auto',
+    fuel ENUM('gasoline', 'diesel', 'electric', 'hybrid') DEFAULT 'gasoline',
     rental_type ENUM('self-drive', 'with-driver', 'long-term') DEFAULT 'self-drive',
     location VARCHAR(100) DEFAULT 'hcm',
     status ENUM('available', 'rented', 'maintenance') DEFAULT 'available',
@@ -39,6 +43,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     customer_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
+    pickup_location VARCHAR(255),
+    return_location VARCHAR(255),
     total_price DECIMAL(10,2) NOT NULL,
     status ENUM('pending', 'confirmed', 'rejected', 'completed', 'cancelled') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -52,7 +58,7 @@ CREATE TABLE IF NOT EXISTS payments (
     amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     transaction_id VARCHAR(255),
-    status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+    status ENUM('pending', 'completed', 'failed', 'refunded', 'cancelled') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -74,18 +80,6 @@ CREATE TABLE IF NOT EXISTS user_addresses (
     INDEX idx_user_addresses_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS user_notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT,
-    type ENUM('info','success','warning','danger','promo') DEFAULT 'info',
-    is_read TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_notifications_user (user_id, is_read)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     car_id INT NOT NULL,
@@ -102,20 +96,6 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- ============================================
 -- CÁC BẢNG BỔ TRỢ CHO CHỦ XE
 -- ============================================
-
--- Khóa lịch xe (chủ xe tự block ngày bận/bảo trì)
-CREATE TABLE IF NOT EXISTS car_availability_blocks (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    car_id INT NOT NULL,
-    owner_id INT NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    note VARCHAR(255),
-    status ENUM('blocked','maintenance') DEFAULT 'blocked',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Yêu cầu rút tiền của chủ xe
 CREATE TABLE IF NOT EXISTS payout_requests (
@@ -191,13 +171,6 @@ INSERT INTO user_addresses (user_id, label, recipient_name, phone, address_line,
 (4, 'Nhà riêng', 'Lê Văn C', '0904567890', '123 Đường Lê Lợi', 'Phường Bến Thành', 'Quận 1', 'TP. Hồ Chí Minh', 1),
 (4, 'Văn phòng', 'Lê Văn C', '0904567890', '45 Nguyễn Huệ', 'Phường Bến Nghé', 'Quận 1', 'TP. Hồ Chí Minh', 0),
 (5, 'Nhà riêng', 'Phạm Thị D', '0905678901', '88 Võ Thị Sáu', 'Phường Đa Kao', 'Quận 1', 'TP. Hồ Chí Minh', 1);
-
-INSERT INTO user_notifications (user_id, title, message, type, is_read, created_at) VALUES
-(4, 'Ưu đãi cuối tuần', 'Giảm giá 20% cho tất cả các dòng xe SUV trong tuần này. Đặt xe ngay để nhận ưu đãi!', 'promo', 0, DATE_SUB(NOW(), INTERVAL 15 MINUTE)),
-(4, 'Đơn hàng #12345 đã được xác nhận', 'Đơn đặt Toyota Vios 2023 của bạn đã được xác nhận. Xe sẽ giao lúc 08:00 ngày 25/10.', 'success', 0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(4, 'Cập nhật chính sách bảo hiểm', 'Chúng tôi đã cập nhật chính sách bảo hiểm mới với nhiều quyền lợi hơn.', 'info', 1, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(4, 'Hoàn thành chuyến đi đầu tiên', 'Chúc mừng bạn đã hoàn thành chuyến đi đầu tiên! Hãy để lại đánh giá nhé.', 'success', 1, DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(5, 'Thanh toán cần xác nhận', 'Đơn đặt của bạn đang chờ thanh toán. Vui lòng hoàn tất trong 24h.', 'warning', 0, DATE_SUB(NOW(), INTERVAL 3 HOUR));
 
 INSERT INTO reviews (car_id, customer_id, booking_id, rating, comment) VALUES
 (3, 4, 3, 5, 'Xe rất tốt, chủ xe nhiệt tình, sẽ thuê lại lần sau!'),

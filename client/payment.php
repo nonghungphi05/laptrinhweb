@@ -35,6 +35,23 @@ $booking = $result->fetch_assoc();
 $days = max(1, (strtotime($booking['end_date']) - strtotime($booking['start_date'])) / 86400);
 $car_image = '../uploads/' . ($booking['car_image'] ?: 'default-car.jpg');
 
+// Mapping địa điểm
+$location_labels = [
+    'hcm'     => 'TP. Hồ Chí Minh',
+    'hanoi'   => 'Hà Nội',
+    'danang'  => 'Đà Nẵng',
+    'cantho'  => 'Cần Thơ',
+    'nhatrang'=> 'Nha Trang',
+    'dalat'   => 'Đà Lạt',
+    'phuquoc' => 'Phú Quốc',
+    'haiphong'=> 'Hải Phòng',
+    'vungtau' => 'Vũng Tàu',
+    'hue'     => 'Huế',
+    'quynhon' => 'Quy Nhơn',
+    'hoian'   => 'Hội An'
+];
+$location_display = $location_labels[$booking['location']] ?? $booking['location'];
+
 // Lấy thông tin thanh toán mới nhất
 $pay_stmt = $conn->prepare("
     SELECT id, amount, payment_method, transaction_id, status, created_at
@@ -149,7 +166,7 @@ $payment_created = $payment['created_at'] ?? null;
                                     <?php if (!empty($booking['location'])): ?>
                                         <p class="text-sm text-slate flex items-center gap-1 mt-1">
                                             <span class="material-symbols-outlined text-base">location_on</span>
-                                            <?php echo htmlspecialchars($booking['location']); ?>
+                                            <?php echo htmlspecialchars($location_display); ?>
                                         </p>
                                     <?php endif; ?>
                                 </div>

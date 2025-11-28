@@ -35,7 +35,9 @@ define('BOOKING_STATUS', [
 define('PAYMENT_STATUS', [
     'pending' => 'Chờ thanh toán',
     'completed' => 'Đã thanh toán',
-    'failed' => 'Thất bại'
+    'failed' => 'Thất bại',
+    'refunded' => 'Đã hoàn tiền',
+    'cancelled' => 'Đã hủy'
 ]);
 
 // User roles
