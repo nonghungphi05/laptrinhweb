@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id']))
     $cancel_id = (int) $_POST['cancel_booking_id'];
     $redirect_status = $_POST['current_status'] ?? $status_filter;
 
-    $stmt = $conn->prepare("SELECT b.status, b.start_date, b.total_price, b.created_at, p.status as payment_status, p.amount as paid_amount 
+    $stmt = $conn->prepare("SELECT b.status, b.start_date, b.pickup_time, b.total_price, b.created_at, p.status as payment_status, p.amount as paid_amount 
         FROM bookings b 
         LEFT JOIN payments p ON b.id = p.booking_id AND p.status = 'completed'
         WHERE b.id = ? AND b.customer_id = ?");
@@ -84,30 +84,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id']))
         exit();
     }
 
-    $today = date('Y-m-d');
     $can_cancel = false;
     $refund_amount = 0;
     $refund_message = '';
 
-    // Chỉ cho phép hủy nếu chưa đến ngày nhận xe
-    if ($booking_to_cancel['start_date'] > $today && in_array($booking_to_cancel['status'], ['pending', 'confirmed'])) {
-        $can_cancel = true;
+    // Tính thời điểm nhận xe (ngày + giờ nhận)
+    $pickup_datetime_str = $booking_to_cancel['start_date'] . ' ' . ($booking_to_cancel['pickup_time'] ?? '08:00:00');
+    $pickup_timestamp = strtotime($pickup_datetime_str);
+    $current_timestamp = time();
+    $hours_until_pickup = ($pickup_timestamp - $current_timestamp) / 3600;
+
+    // Logic hủy chuyến:
+    // - Chưa thanh toán: hủy thoải mái (miễn là status pending/confirmed)
+    // - Đã thanh toán: chỉ cho hủy trước 24h nhận xe
+    $is_paid = ($booking_to_cancel['payment_status'] === 'completed');
+    
+    if (in_array($booking_to_cancel['status'], ['pending', 'confirmed'])) {
+        if (!$is_paid) {
+            // Chưa thanh toán - hủy thoải mái
+            $can_cancel = true;
+        } elseif ($hours_until_pickup > 24) {
+            // Đã thanh toán - chỉ hủy trước 24h nhận xe
+            $can_cancel = true;
+        }
+    }
+
+    // Tính số tiền hoàn trả nếu đã thanh toán
+    if ($can_cancel && $is_paid && $booking_to_cancel['paid_amount'] > 0) {
+        $booking_created = strtotime($booking_to_cancel['created_at']);
+        $hours_since_booking = (time() - $booking_created) / 3600;
         
-        // Tính số tiền hoàn trả nếu đã thanh toán
-        if ($booking_to_cancel['payment_status'] === 'completed' && $booking_to_cancel['paid_amount'] > 0) {
-            $booking_created = strtotime($booking_to_cancel['created_at']);
-            $hours_since_booking = (time() - $booking_created) / 3600;
-            
-            if ($hours_since_booking <= 24) {
-                // Hủy trong 24h đầu: hoàn 100%
-                $refund_amount = $booking_to_cancel['paid_amount'];
-                $refund_message = 'Hoàn tiền 100% (' . number_format($refund_amount) . ' VNĐ) - Hủy trong 24h đầu.';
-            } else {
-                // Sau 24h: hoàn 80% (phí 20%)
-                $refund_amount = $booking_to_cancel['paid_amount'] * 0.8;
-                $fee = $booking_to_cancel['paid_amount'] * 0.2;
-                $refund_message = 'Hoàn tiền 80% (' . number_format($refund_amount) . ' VNĐ) - Phí hủy 20% (' . number_format($fee) . ' VNĐ).';
-            }
+        if ($hours_since_booking <= 24) {
+            // Hủy trong 24h đầu: hoàn 100%
+            $refund_amount = $booking_to_cancel['paid_amount'];
+            $refund_message = 'Hoàn tiền 100% (' . number_format($refund_amount) . ' VNĐ) - Hủy trong 24h đầu.';
+        } else {
+            // Sau 24h: hoàn 80% (phí 20%)
+            $refund_amount = $booking_to_cancel['paid_amount'] * 0.8;
+            $fee = $booking_to_cancel['paid_amount'] * 0.2;
+            $refund_message = 'Hoàn tiền 80% (' . number_format($refund_amount) . ' VNĐ) - Phí hủy 20% (' . number_format($fee) . ' VNĐ).';
         }
     }
 
@@ -354,6 +369,8 @@ function getActiveStatus($booking) {
                                     
                                     $start_date = date('d/m/Y', strtotime($booking['start_date']));
                                     $end_date = date('d/m/Y', strtotime($booking['end_date']));
+                                    $pickup_time = isset($booking['pickup_time']) ? date('H:i', strtotime($booking['pickup_time'])) : '08:00';
+                                    $return_time = isset($booking['return_time']) ? date('H:i', strtotime($booking['return_time'])) : '18:00';
                                     $car_image_url = $base_path ? $base_path . '/uploads/' : '../uploads/';
                                     ?>
                                     <div class="flex flex-col md:flex-row items-stretch justify-between gap-6 rounded-xl bg-white dark:bg-background-dark dark:border dark:border-border-dark p-4 shadow-sm">
@@ -371,7 +388,11 @@ function getActiveStatus($booking) {
                                                 <p class="text-xl font-bold leading-tight"><?php echo htmlspecialchars($booking['car_name']); ?></p>
                                                 <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                                     <span class="material-symbols-outlined text-base">calendar_today</span>
-                                                    <p>Nhận: <?php echo $start_date; ?> - Trả: <?php echo $end_date; ?></p>
+                                                    <p>Nhận: <?php echo $start_date; ?> lúc <?php echo $pickup_time; ?></p>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                                    <span class="material-symbols-outlined text-base">event_available</span>
+                                                    <p>Trả: <?php echo $end_date; ?> lúc <?php echo $return_time; ?></p>
                                                 </div>
                                                 <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                                     <span class="material-symbols-outlined text-base">payments</span>
@@ -420,15 +441,28 @@ function getActiveStatus($booking) {
                                                     </a>
                                                 <?php else: ?>
                                                     <?php
-                                                        $booking_start_ts = strtotime($booking['start_date']);
-                                                        $today_ts = strtotime(date('Y-m-d'));
-                                                        // Cho phép hủy nếu chưa đến ngày nhận xe (kể cả đã thanh toán)
-                                                        $allow_cancel = in_array($booking['status'], ['pending', 'confirmed']) && $booking_start_ts > $today_ts;
+                                                        // Tính thời điểm nhận xe (ngày + giờ nhận)
+                                                        $pickup_datetime = $booking['start_date'] . ' ' . ($booking['pickup_time'] ?? '08:00:00');
+                                                        $pickup_ts = strtotime($pickup_datetime);
+                                                        $hours_until_pickup = ($pickup_ts - time()) / 3600;
+                                                        $is_booking_paid = ($booking['payment_status'] === 'completed');
+                                                        
+                                                        // Logic hủy:
+                                                        // - Chưa thanh toán: hủy thoải mái
+                                                        // - Đã thanh toán: chỉ hủy trước 24h nhận xe
+                                                        $allow_cancel = false;
+                                                        if (in_array($booking['status'], ['pending', 'confirmed'])) {
+                                                            if (!$is_booking_paid) {
+                                                                $allow_cancel = true; // Chưa thanh toán - hủy thoải mái
+                                                            } elseif ($hours_until_pickup > 24) {
+                                                                $allow_cancel = true; // Đã thanh toán - còn > 24h
+                                                            }
+                                                        }
                                                         
                                                         // Tính thông tin hoàn tiền nếu đã thanh toán
                                                         $refund_info = '';
                                                         $confirm_message = 'Bạn chắc chắn muốn hủy chuyến này?';
-                                                        if ($allow_cancel && $booking['payment_status'] === 'completed') {
+                                                        if ($allow_cancel && $is_booking_paid) {
                                                             $booking_created = strtotime($booking['booking_created_at']);
                                                             $hours_since_booking = (time() - $booking_created) / 3600;
                                                             
@@ -445,6 +479,12 @@ function getActiveStatus($booking) {
                                                                 $confirm_message = 'Bạn sẽ được hoàn 80% (' . number_format($refund_amount) . ' VNĐ). Phí hủy 20% (' . number_format($fee) . ' VNĐ). Xác nhận hủy?';
                                                             }
                                                         }
+                                                        
+                                                        // Hiển thị thông báo quá hạn hủy (chỉ với đơn đã thanh toán)
+                                                        $cancel_deadline = '';
+                                                        if (!$allow_cancel && $is_booking_paid && in_array($booking['status'], ['pending', 'confirmed']) && $hours_until_pickup > 0) {
+                                                            $cancel_deadline = 'Đã quá hạn hủy chuyến (trước 24h nhận xe)';
+                                                        }
                                                     ?>
                                                     <?php if ($allow_cancel): ?>
                                                     <form method="POST" class="inline-flex" onsubmit="return confirm('<?php echo $confirm_message; ?>');">
@@ -455,6 +495,11 @@ function getActiveStatus($booking) {
                                                             <span class="truncate">Hủy chuyến<?php echo $refund_info ? ' (' . $refund_info . ')' : ''; ?></span>
                                                         </button>
                                                     </form>
+                                                    <?php elseif ($cancel_deadline): ?>
+                                                    <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                                                        <span class="material-symbols-outlined text-sm">info</span>
+                                                        <?php echo $cancel_deadline; ?>
+                                                    </span>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
