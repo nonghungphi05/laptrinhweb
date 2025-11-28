@@ -25,22 +25,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($name === '' || $car_type === '' || $rental_type === '' || $location === '' || $price_per_day <= 0) {
         $error = 'Vui lòng điền đầy đủ thông tin bắt buộc.';
     } else {
-        $image = '';
-        if (isset($_FILES['car_image']) && $_FILES['car_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $image = uploadFile($_FILES['car_image'], '../uploads/');
-            if (!$image) {
-                $error = 'Upload ảnh thất bại. Chỉ nhận JPG, PNG, GIF, WEBP tối đa 5MB.';
+$uploaded_images = [];
+        if (isset($_FILES['car_images']) && !empty($_FILES['car_images']['name'][0])) {
+            $files = $_FILES['car_images'];
+            $max_files = min(count($files['name']), 5);
+
+            for ($i = 0; $i < $max_files; $i++) {
+                if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                    $error = 'Upload ảnh thất bại. Vui lòng thử lại.';
+                    break;
+                }
+
+                $single_file = [
+                    'name' => $files['name'][$i],
+                    'type' => $files['type'][$i],
+                    'tmp_name' => $files['tmp_name'][$i],
+                    'error' => $files['error'][$i],
+                    'size' => $files['size'][$i],
+                ];
+
+                $uploaded = uploadFile($single_file, '../uploads/');
+                if (!$uploaded) {
+                    $error = 'Upload ảnh thất bại. Chỉ nhận JPG, PNG, GIF, WEBP tối đa 5MB.';
+                    break;
+                }
+
+                $uploaded_images[] = $uploaded;
             }
         }
 
         if ($error === '') {
+            $primary_image = $uploaded_images[0] ?? '';
+
             $stmt = $conn->prepare("INSERT INTO cars (owner_id, name, description, image, price_per_day, car_type, rental_type, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param(
                 "isssdssss",
                 $owner_id,
                 $name,
                 $description,
-                $image,
+                $primary_image,
                 $price_per_day,
                 $car_type,
                 $rental_type,
@@ -49,6 +76,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if ($stmt->execute()) {
+                $car_id = $stmt->insert_id;
+
+                if (!empty($uploaded_images)) {
+                    $image_stmt = $conn->prepare("INSERT INTO car_images (car_id, file_path, is_primary) VALUES (?, ?, ?)");
+                    foreach ($uploaded_images as $index => $file_path) {
+                        $is_primary = $index === 0 ? 1 : 0;
+                        $image_stmt->bind_param("isi", $car_id, $file_path, $is_primary);
+                        $image_stmt->execute();
+                    }
+                }
+
                 $success = 'Xe của bạn đã được đăng!';
                 $_POST = [];
             } else {
@@ -203,11 +241,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
                             </label>
                             <div class="md:col-span-2 space-y-3">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Hình ảnh xe</span>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Hình ảnh xe (tối đa 5 ảnh)</span>
                                 <div class="rounded-xl border border-dashed border-border-color dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800/50 text-center">
                                     <span class="material-symbols-outlined text-4xl text-primary mx-auto">image</span>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Chọn hình ảnh rõ nét, chấp nhận JPG/PNG/GIF/WEBP (tối đa 5MB).</p>
-                                    <input type="file" name="car_image" accept="image/*"
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Chọn tối đa 5 ảnh rõ nét, chấp nhận JPG/PNG/GIF/WEBP (tối đa 5MB mỗi ảnh).</p>
+                                    <input type="file" name="car_images[]" accept="image/*" multiple
                                         class="w-full mt-4 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm">
                                 </div>
                             </div>

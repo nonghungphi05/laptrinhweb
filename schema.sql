@@ -80,6 +80,15 @@ CREATE TABLE IF NOT EXISTS user_addresses (
     INDEX idx_user_addresses_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS car_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    car_id INT NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    is_primary TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     car_id INT NOT NULL,

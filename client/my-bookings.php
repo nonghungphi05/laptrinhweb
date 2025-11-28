@@ -16,6 +16,56 @@ $status_filter = $_GET['status'] ?? 'all';
 $flash_success = $_GET['success'] ?? '';
 $flash_error   = $_GET['error'] ?? '';
 
+// Xử lý trả xe
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['return_booking_id'])) {
+    $return_id = (int) $_POST['return_booking_id'];
+    $redirect_status = $_POST['current_status'] ?? $status_filter;
+
+    // Kiểm tra booking thuộc về user và đang ở trạng thái confirmed
+    $stmt = $conn->prepare("SELECT b.*, c.name as car_name 
+        FROM bookings b 
+        JOIN cars c ON b.car_id = c.id
+        WHERE b.id = ? AND b.customer_id = ? AND b.status = 'confirmed'");
+    $stmt->bind_param("ii", $return_id, $user_id);
+    $stmt->execute();
+    $booking_to_return = $stmt->get_result()->fetch_assoc();
+
+    if (!$booking_to_return) {
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Không tìm thấy chuyến này hoặc chuyến không thể trả.'));
+        exit();
+    }
+
+    $today = date('Y-m-d');
+    $start_date = $booking_to_return['start_date'];
+    $end_date = $booking_to_return['end_date'];
+
+    // Chỉ cho phép trả xe nếu đang trong thời gian thuê hoặc quá hạn
+    if ($today >= $start_date) {
+        // Cập nhật trạng thái booking thành completed
+        $actual_return_date = $today;
+        $stmt = $conn->prepare("UPDATE bookings SET status = 'completed' WHERE id = ?");
+        $stmt->bind_param("i", $return_id);
+        
+        if ($stmt->execute()) {
+            if ($today > $end_date) {
+                // Quá hạn trả xe
+                $days_late = floor((strtotime($today) - strtotime($end_date)) / 86400);
+                $success_msg = 'Bạn đã trả xe "' . $booking_to_return['car_name'] . '" thành công. Lưu ý: Bạn đã trả xe trễ ' . $days_late . ' ngày.';
+            } else {
+                $success_msg = 'Bạn đã trả xe "' . $booking_to_return['car_name'] . '" thành công! Cảm ơn bạn đã sử dụng dịch vụ.';
+            }
+            header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&success=" . urlencode($success_msg));
+            exit();
+        } else {
+            header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Có lỗi xảy ra. Vui lòng thử lại.'));
+            exit();
+        }
+    } else {
+        header("Location: my-bookings.php?status=" . urlencode($redirect_status) . "&error=" . urlencode('Chưa đến thời gian nhận xe. Không thể trả xe.'));
+        exit();
+    }
+}
+
 // Xử lý hủy chuyến
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking_id'])) {
     $cancel_id = (int) $_POST['cancel_booking_id'];
@@ -354,10 +404,14 @@ function getActiveStatus($booking) {
                                                 </a>
                                                 
                                                 <?php if ($active_status === 'active'): ?>
-                                                    <button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-medium leading-normal hover:bg-opacity-90 transition-opacity">
-                                                        <span class="material-symbols-outlined text-base">key</span>
-                                                        <span class="truncate">Trả xe</span>
-                                                    </button>
+                                                    <form method="POST" class="inline-flex" onsubmit="return confirm('Bạn xác nhận đã trả xe &quot;<?php echo htmlspecialchars($booking['car_name'], ENT_QUOTES); ?>&quot;?');">
+                                                        <input type="hidden" name="return_booking_id" value="<?php echo $booking['id']; ?>">
+                                                        <input type="hidden" name="current_status" value="<?php echo htmlspecialchars($status_filter); ?>">
+                                                        <button type="submit" class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-medium leading-normal hover:bg-opacity-90 transition-opacity">
+                                                            <span class="material-symbols-outlined text-base">key</span>
+                                                            <span class="truncate">Trả xe</span>
+                                                        </button>
+                                                    </form>
                                                 <?php elseif ($active_status === 'completed' && $booking['payment_status'] === 'completed'): ?>
                                                     <a href="<?php echo $base_path ? $base_path . '/client/review.php?booking_id=' . $booking['id'] : 'review.php?booking_id=' . $booking['id']; ?>" 
                                                        class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-secondary text-white text-sm font-medium leading-normal hover:bg-opacity-90 transition-opacity">

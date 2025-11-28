@@ -19,10 +19,7 @@ $base_path = getBasePath();
 $search = trim($_GET['search'] ?? '');
 $location = $_GET['location'] ?? '';
 $rental_type = $_GET['rental_type'] ?? '';
-$car_types = $_GET['car_type'] ?? '';
-if (!is_array($car_types)) {
-    $car_types = $car_types ? explode(',', $car_types) : [];
-}
+$car_type = trim($_GET['car_type'] ?? '');
 $budget = $_GET['budget'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $per_page = 12;
@@ -52,20 +49,10 @@ if ($rental_type !== '') {
     $types .= "s";
 }
 
-if (!empty($car_types)) {
-    $placeholders = [];
-    foreach ($car_types as $car_type) {
-        $car_type = trim($car_type);
-        if ($car_type === '') {
-            continue;
-        }
-        $placeholders[] = "c.car_type = ?";
-        $params[] = $car_type;
-        $types .= "s";
-    }
-    if (!empty($placeholders)) {
-        $conditions[] = "(" . implode(" OR ", $placeholders) . ")";
-    }
+if ($car_type !== '') {
+    $conditions[] = "c.car_type = ?";
+    $params[] = $car_type;
+    $types .= "s";
 }
 
 if ($budget !== '') {
@@ -218,7 +205,8 @@ $rental_type_labels = [
                         </label>
                         <label class="flex flex-col gap-2">
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Loại xe</span>
-                            <select name="car_type[]" multiple class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 focus:border-primary focus:ring-primary/30 h-32">
+                            <select name="car_type" class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 focus:border-primary focus:ring-primary/30">
+                                <option value="">Tất cả</option>
                                 <?php
                                     $car_type_options = [
                                         'sedan' => 'Sedan',
@@ -230,10 +218,9 @@ $rental_type_labels = [
                                     ];
                                 ?>
                                 <?php foreach ($car_type_options as $value => $label): ?>
-                                    <option value="<?php echo $value; ?>" <?php echo in_array($value, $car_types, true) ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                                    <option value="<?php echo $value; ?>" <?php echo $car_type === $value ? 'selected' : ''; ?>><?php echo $label; ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <span class="text-xs text-gray-500">Giữ Ctrl (hoặc Cmd) để chọn nhiều loại.</span>
                         </label>
                         <label class="flex flex-col gap-2">
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Ngân sách</span>
