@@ -4,8 +4,10 @@
  */
 require_once '../config/database.php';
 require_once '../config/session.php';
+require_once '../config/helpers.php';
 
 requireLogin(); // Quyền sở hữu xe được kiểm tra bên dưới
+autoCancelExpiredBookings();
 
 $car_id = $_GET['car_id'] ?? 0;
 $user_id = $_SESSION['user_id'];

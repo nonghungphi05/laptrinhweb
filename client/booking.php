@@ -72,6 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Ngày trả xe phải sau ngày nhận xe ít nhất 1 ngày';
     } elseif ($pickup_type === 'delivery' && empty($pickup_location)) {
         $error = 'Vui lòng nhập địa chỉ giao xe';
+    } elseif (strtotime($start_date . ' ' . $pickup_time) <= time()) {
+        $error = 'Giờ nhận xe phải lớn hơn thời điểm hiện tại';
     } else {
         // Kiểm tra trùng lịch (overlap detection)
         $stmt = $conn->prepare("SELECT id FROM bookings 
@@ -240,6 +242,7 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                                         </select>
                                     </div>
                                     <p class="text-xs text-slate mt-1">Nhận xe từ 17:00 - 22:00</p>
+                                    <p id="pickup_time_warning" class="text-xs text-red-600 mt-1 hidden">Không còn khung giờ hợp lệ hôm nay, vui lòng chọn ngày khác.</p>
                                 </div>
                             </div>
                             <div class="p-4 border border-[#eee1d4] rounded-2xl space-y-4">
@@ -375,6 +378,8 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
         const deliveryAddressSection = document.getElementById('delivery_address_section');
         const selfPickupInfo = document.getElementById('self_pickup_info');
         const deliveryFeeText = document.getElementById('deliveryFeeText');
+    const pickupTimeSelect = document.getElementById('pickup_time');
+    const pickupTimeWarning = document.getElementById('pickup_time_warning');
 
         function calculateTotal() {
             const startDate = new Date(startDateInput.value);
@@ -418,6 +423,47 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
             calculateTotal();
         }
 
+    function updatePickupTimeOptions() {
+        if (!pickupTimeSelect || !startDateInput) return;
+        const selectedDate = startDateInput.value;
+        const todayStr = new Date().toISOString().split('T')[0];
+        const options = Array.from(pickupTimeSelect.options);
+        options.forEach(option => option.disabled = false);
+
+        if (selectedDate && selectedDate === todayStr) {
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            let firstAvailable = null;
+            let availableCount = 0;
+
+            options.forEach(option => {
+                const [hour, minute] = option.value.split(':');
+                const optionMinutes = parseInt(hour, 10) * 60 + parseInt(minute, 10);
+                const disable = optionMinutes <= currentMinutes;
+                option.disabled = disable;
+                if (!disable) {
+                    availableCount++;
+                    if (!firstAvailable) {
+                        firstAvailable = option.value;
+                    }
+                }
+            });
+
+            if (availableCount > 0) {
+                pickupTimeSelect.value = firstAvailable;
+                if (pickupTimeWarning) pickupTimeWarning.classList.add('hidden');
+            } else {
+                pickupTimeSelect.selectedIndex = -1;
+                if (pickupTimeWarning) pickupTimeWarning.classList.remove('hidden');
+            }
+        } else {
+            if (pickupTimeWarning) pickupTimeWarning.classList.add('hidden');
+            if (!pickupTimeSelect.value && options.length > 0) {
+                pickupTimeSelect.value = options[0].value;
+            }
+        }
+    }
+
         startDateInput.addEventListener('change', function() {
             // Cập nhật min của end_date = start_date + 1 ngày
             if (this.value) {
@@ -431,6 +477,7 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                     endDateInput.value = minEndDate;
                 }
             }
+        updatePickupTimeOptions();
             calculateTotal();
         });
         endDateInput.addEventListener('change', calculateTotal);
@@ -460,6 +507,7 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
 
         // Initial calculation
         calculateTotal();
+    updatePickupTimeOptions();
     </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ require_once '../config/session.php';
 require_once '../config/helpers.php';
 
 requireLogin();
+autoCancelExpiredBookings();
 
 $user_id = $_SESSION['user_id'];
 $base_path = getBasePath();

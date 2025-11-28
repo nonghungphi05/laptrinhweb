@@ -135,4 +135,33 @@ function getPagination($total_items, $items_per_page, $current_page) {
     ];
 }
 
+/**
+ * Hủy các đơn đặt chưa thanh toán sau $minutes phút
+ */
+function autoCancelExpiredBookings($minutes = 15) {
+    global $conn;
+    
+    if (!isset($conn) || $conn->connect_errno) {
+        return;
+    }
+
+    $sql = "
+        UPDATE bookings b
+        SET b.status = 'cancelled'
+        WHERE b.status = 'pending'
+          AND TIMESTAMPDIFF(MINUTE, b.created_at, NOW()) >= ?
+          AND NOT EXISTS (
+            SELECT 1 FROM payments p
+            WHERE p.booking_id = b.id
+              AND p.status = 'completed'
+          )
+    ";
+
+    if ($stmt = $conn->prepare($sql)) {
+        $stmt->bind_param('i', $minutes);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
 ?>

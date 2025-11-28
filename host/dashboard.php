@@ -216,11 +216,13 @@ $stmt->execute();
 $pending_bookings = (int)$stmt->get_result()->fetch_assoc()['total'];
 
 $current_month = date('Y-m');
-$stmt = $conn->prepare("SELECT COALESCE(SUM(b.total_price), 0) as total 
-    FROM bookings b 
-    JOIN cars c ON b.car_id = c.id 
-    WHERE c.owner_id = ? AND b.status IN ('confirmed', 'completed') 
-    AND DATE_FORMAT(b.created_at, '%Y-%m') = ?");
+$stmt = $conn->prepare("SELECT COALESCE(SUM(p.amount), 0) as total
+    FROM payments p
+    JOIN bookings b ON p.booking_id = b.id
+    JOIN cars c ON b.car_id = c.id
+    WHERE c.owner_id = ? 
+      AND p.status = 'completed'
+      AND DATE_FORMAT(p.created_at, '%Y-%m') = ?");
 $stmt->bind_param("is", $user_id, $current_month);
 $stmt->execute();
 $monthly_revenue = (float)$stmt->get_result()->fetch_assoc()['total'];
@@ -335,11 +337,11 @@ if ($active_view === 'earnings') {
     $earnings_cards['pending_payout'] = (float)($balance_data['pending_amount'] ?? 0);
     $earnings_cards['total_earnings'] = $earnings_cards['available_balance'] + $earnings_cards['pending_payout'];
 
-    $chart_stmt = $conn->prepare("SELECT DATE_FORMAT(b.start_date, '%Y-%m') as month_label, SUM(p.amount) as total
+    $chart_stmt = $conn->prepare("SELECT DATE_FORMAT(p.created_at, '%Y-%m') as month_label, SUM(p.amount) as total
         FROM payments p
         JOIN bookings b ON p.booking_id = b.id
         JOIN cars c ON b.car_id = c.id
-        WHERE c.owner_id = ?
+        WHERE c.owner_id = ? AND p.status = 'completed'
         GROUP BY month_label
         ORDER BY month_label DESC
         LIMIT 6");
@@ -351,10 +353,11 @@ if ($active_view === 'earnings') {
         $earning_chart_values[] = (float)$row['total'];
     }
 
-    $months_stmt = $conn->prepare("SELECT DISTINCT DATE_FORMAT(b.start_date, '%Y-%m') as month_label
-        FROM bookings b
+    $months_stmt = $conn->prepare("SELECT DISTINCT DATE_FORMAT(p.created_at, '%Y-%m') as month_label
+        FROM payments p
+        JOIN bookings b ON p.booking_id = b.id
         JOIN cars c ON b.car_id = c.id
-        WHERE c.owner_id = ?
+        WHERE c.owner_id = ? AND p.status = 'completed'
         ORDER BY month_label DESC
         LIMIT 12");
     $months_stmt->bind_param("i", $user_id);
