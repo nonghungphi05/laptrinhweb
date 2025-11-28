@@ -46,7 +46,15 @@ $vnpTranId             = $inputData['vnp_TransactionNo'] ?? '';
 $vnp_Amount            = isset($inputData['vnp_Amount']) ? ((int)$inputData['vnp_Amount'] / 100) : 0;
 $vnp_ResponseCode      = $inputData['vnp_ResponseCode'] ?? '';
 $vnp_TransactionStatus = $inputData['vnp_TransactionStatus'] ?? '';
-$orderId               = (int)($inputData['vnp_TxnRef'] ?? 0);
+$vnp_TxnRef            = $inputData['vnp_TxnRef'] ?? '';
+$orderId               = 0;
+if ($vnp_TxnRef !== '') {
+    $parts = explode('-', $vnp_TxnRef, 2);
+    $orderId = (int)$parts[0];
+}
+if ($orderId === 0 && $vnp_TxnRef !== '') {
+    $orderId = (int)$vnp_TxnRef;
+}
 
 try {
     if ($secureHash !== $vnp_SecureHash) {

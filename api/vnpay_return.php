@@ -41,7 +41,15 @@ foreach ($inputData as $key => $value) {
 
 $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-$booking_id        = (int)($inputData['vnp_TxnRef'] ?? 0);
+$vnp_TxnRef        = $inputData['vnp_TxnRef'] ?? '';
+$booking_id        = 0;
+if ($vnp_TxnRef !== '') {
+    $parts = explode('-', $vnp_TxnRef, 2);
+    $booking_id = (int)$parts[0];
+}
+if ($booking_id === 0 && $vnp_TxnRef !== '') {
+    $booking_id = (int)$vnp_TxnRef;
+}
 $vnp_Amount        = isset($inputData['vnp_Amount']) ? ((int)$inputData['vnp_Amount'] / 100) : 0;
 $vnp_ResponseCode  = $inputData['vnp_ResponseCode'] ?? '';
 $vnp_TransactionNo = $inputData['vnp_TransactionNo'] ?? '';

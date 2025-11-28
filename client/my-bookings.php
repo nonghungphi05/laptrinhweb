@@ -318,13 +318,21 @@ function getActiveStatus($booking) {
                         <!-- Tabs -->
                         <div class="pb-3">
                             <div class="flex border-b border-border-light dark:border-border-dark gap-2 sm:gap-8 overflow-x-auto">
-                                <a href="?status=active" 
-                                   class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'active' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
-                                    <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Đang đi</p>
+                                <a href="?status=all" 
+                                   class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'all' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
+                                    <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Tất cả</p>
+                                </a>
+                                <a href="?status=pending" 
+                                   class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'pending' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
+                                    <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Chờ xác nhận</p>
                                 </a>
                                 <a href="?status=upcoming" 
                                    class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'upcoming' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
                                     <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Sắp tới</p>
+                                </a>
+                                <a href="?status=active" 
+                                   class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'active' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
+                                    <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Đang đi</p>
                                 </a>
                                 <a href="?status=completed" 
                                    class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'completed' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
@@ -333,10 +341,6 @@ function getActiveStatus($booking) {
                                 <a href="?status=cancelled" 
                                    class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'cancelled' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
                                     <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Đã hủy</p>
-                                </a>
-                                <a href="?status=all" 
-                                   class="flex flex-col items-center justify-center border-b-[3px] <?php echo $status_filter === 'all' ? 'border-b-secondary text-secondary' : 'border-b-transparent text-gray-500 dark:text-gray-400 hover:text-secondary'; ?> py-3 px-4">
-                                    <p class="text-sm font-bold leading-normal tracking-[0.015em] whitespace-nowrap">Tất cả</p>
                                 </a>
                             </div>
                         </div>

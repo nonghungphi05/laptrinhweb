@@ -7,6 +7,7 @@ require_once '../config/session.php';
 require_once '../config/helpers.php';
 
 $error = '';
+$success = '';
 $redirect = $_GET['redirect'] ?? '';
 
 // Lấy base path
@@ -20,6 +21,12 @@ if (isLoggedIn()) {
         header('Location: ' . $base_path . '/index.php');
     }
     exit();
+}
+
+// Lấy thông báo thành công (ví dụ sau khi đăng ký)
+if (!empty($_SESSION['success'])) {
+    $success = $_SESSION['success'];
+    unset($_SESSION['success']);
 }
 
 // Xử lý đăng nhập
@@ -166,7 +173,13 @@ $active_tab = isset($_GET['tab']) && $_GET['tab'] === 'register' ? 'register' : 
                                 </div>
                             </div>
                             <!-- End Tabs Component -->
-                            
+
+                            <?php if ($success): ?>
+                                <div class="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <p class="text-sm text-green-700 dark:text-green-300"><?php echo htmlspecialchars($success); ?></p>
+                                </div>
+                            <?php endif; ?>
+
                             <?php if ($error): ?>
                                 <div class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                                     <p class="text-sm text-red-600 dark:text-red-400"><?php echo htmlspecialchars($error); ?></p>

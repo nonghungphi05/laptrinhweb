@@ -188,7 +188,15 @@ $status_config = [
                                 </div>
                                 <div>
                                     <p class="text-text-muted">Thời gian thuê</p>
-                                    <p class="font-semibold"><?php echo date('d/m/Y', strtotime($booking['start_date'])); ?> - <?php echo date('d/m/Y', strtotime($booking['end_date'])); ?></p>
+                                    <?php
+                                        $start_datetime = $booking['start_date'] . ' ' . ($booking['pickup_time'] ?? '00:00:00');
+                                        $end_datetime = $booking['end_date'] . ' ' . ($booking['return_time'] ?? '00:00:00');
+                                    ?>
+                                    <p class="font-semibold">
+                                        <?php echo date('d/m/Y H:i', strtotime($start_datetime)); ?>
+                                        <span class="text-text-muted">→</span>
+                                        <?php echo date('d/m/Y H:i', strtotime($end_datetime)); ?>
+                                    </p>
                                 </div>
                                 <div>
                                     <p class="text-text-muted">Tổng tiền</p>

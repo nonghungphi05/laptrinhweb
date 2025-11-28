@@ -49,9 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->bind_param("ssssss", $username, $email, $hashed_password, $role, $full_name, $phone);
                     
                     if ($stmt->execute()) {
-                        $success = 'Đăng ký thành công! Bạn có thể vừa thuê xe vừa đăng bài cho thuê xe. Vui lòng đăng nhập.';
-                        // Clear form
-                        $_POST = [];
+                        // Đăng ký thành công: lưu thông báo ngắn gọn và chuyển sang trang đăng nhập
+                        $_SESSION['success'] = 'Đăng ký thành công';
+                        header('Location: login.php');
+                        exit;
                     } else {
                         $error = 'Lỗi thêm user: ' . $stmt->error . ' (MySQL Error: ' . $conn->error . ')';
                     }
