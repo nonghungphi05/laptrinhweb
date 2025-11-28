@@ -25,8 +25,6 @@ if ($result->num_rows === 0) {
 
 $car = $result->fetch_assoc();
 $current_user_id = $_SESSION['user_id'] ?? null;
-$can_message_owner = isLoggedIn() && $current_user_id !== (int)$car['owner_id'];
-$messages_url = '../messages.php?with=' . (int)$car['owner_id'];
 
 // Lấy đánh giá
 $stmt = $conn->prepare("SELECT r.*, u.full_name 
@@ -264,16 +262,6 @@ $can_book = isLoggedIn()
                                 <span class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-gray-200 text-gray-500 font-semibold">
                                     Xe hiện không khả dụng
                                 </span>
-                            <?php endif; ?>
-                            <?php if ($can_message_owner): ?>
-                                <a href="<?php echo $messages_url; ?>" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition">
-                                    <span class="material-symbols-outlined text-base">chat</span>
-                                    Chat với chủ xe
-                                </a>
-                            <?php elseif (!isLoggedIn()): ?>
-                                <a href="../auth/login.php" class="inline-flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-primary text-primary font-semibold">
-                                    Chat với chủ xe
-                                </a>
                             <?php endif; ?>
                         </div>
                     </div>

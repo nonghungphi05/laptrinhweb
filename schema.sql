@@ -100,21 +100,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- CÁC BẢNG BỔ TRỢ CHO CHỦ XE & CHAT
+-- CÁC BẢNG BỔ TRỢ CHO CHỦ XE
 -- ============================================
-
--- Tin nhắn giữa user với nhau (chat thuê xe)
-CREATE TABLE IF NOT EXISTS messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    message_content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_sender (sender_id),
-    INDEX idx_receiver (receiver_id),
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Khóa lịch xe (chủ xe tự block ngày bận/bảo trì)
 CREATE TABLE IF NOT EXISTS car_availability_blocks (

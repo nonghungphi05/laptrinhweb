@@ -11,7 +11,6 @@ Website cho thuê xe ô tô (tự lái / có tài xế / dài hạn) – Mỗi u
 - Kiểm tra trùng lịch đặt xe
 - Thanh toán online qua VNPAY
 - Đánh giá xe sau khi thuê
-- 💬 **Chat trực tiếp**: Nhắn tin trao đổi giữa người thuê và chủ xe (Real-time)
 
 ### 👤 Tài khoản
 - Mỗi user có thể vừa thuê xe vừa đăng xe cho thuê
@@ -22,7 +21,6 @@ Website cho thuê xe ô tô (tự lái / có tài xế / dài hạn) – Mỗi u
 
 - **Frontend**: HTML5, CSS3 (Tailwind CSS), JavaScript (Vanilla JS)
 - **Backend**: PHP 7.4+, MySQL 5.7+
-- **Real-time**: Pusher (Chat feature)
 - **Payment**: VNPAY Sandbox
 - **Server**: Apache (mod_rewrite)
 
@@ -36,7 +34,6 @@ laptrinhweb/
 ├── api/                # API thanh toán VNPAY
 ├── assets/             # CSS, JS, Fonts
 ├── auth/               # Đăng nhập, đăng ký
-├── chat/               # API xử lý tin nhắn (send, get history)
 ├── client/             # Đặt xe, thanh toán, đánh giá, hồ sơ
 │   ├── booking.php              # Form đặt xe
 │   ├── payment.php              # Thanh toán
@@ -115,7 +112,6 @@ laptrinhweb/
 - **user_addresses**: Địa chỉ nhận/trả xe yêu thích
 - **user_notifications**: Thông báo gửi cho user
 - **reviews**: Đánh giá xe
-- **messages**: Tin nhắn chat (Tự động tạo khi chạy messages.php)
 
 Xem chi tiết trong file `schema.sql`
 

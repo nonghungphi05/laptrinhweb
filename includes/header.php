@@ -13,9 +13,6 @@ $base_path = getBasePath();
 $host_cta_link = isLoggedIn()
     ? ($base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php')
     : ($base_path ? $base_path . '/auth/login.php' : 'auth/login.php');
-$messages_link = isLoggedIn()
-    ? ($base_path ? $base_path . '/messages.php' : 'messages.php')
-    : ($base_path ? $base_path . '/auth/login.php' : 'auth/login.php');
 ?>
 <header class="w-full border-b border-[#f5f2f0] dark:border-b-background-dark/20 bg-white/90 backdrop-blur">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-4 px-4 md:px-8 py-3">
@@ -35,13 +32,9 @@ $messages_link = isLoggedIn()
                 <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="text-[#181411] dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors">Chuyến của tôi</a>
             <?php endif; ?>
             <a href="<?php echo $base_path ? $base_path . '/cars/index.php' : 'cars/index.php'; ?>" class="text-[#181411] dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors">Danh sách xe</a>
-            <a href="<?php echo $messages_link; ?>" class="text-[#181411] dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors">Hộp thư</a>
         </nav>
         <div class="flex items-center gap-2">
             <?php if (isLoggedIn()): ?>
-                <a href="<?php echo $messages_link; ?>" class="hidden md:flex h-10 w-10 items-center justify-center rounded-full text-[#181411] hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800 transition-colors" aria-label="Tin nhắn">
-                    <span class="material-symbols-outlined">chat</span>
-                </a>
                 <button type="button" class="hidden md:flex h-10 w-10 items-center justify-center rounded-full text-[#181411] hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800 transition-colors" aria-label="Ưu đãi">
                     <span class="material-symbols-outlined">card_giftcard</span>
                 </button>
@@ -53,7 +46,6 @@ $messages_link = isLoggedIn()
                     <div class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                         <a href="<?php echo $base_path ? $base_path . '/client/profile.php' : 'client/profile.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Tài khoản của tôi</a>
                         <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Đơn đặt của tôi</a>
-                        <a href="<?php echo $messages_link; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Hộp thư</a>
                         <a href="<?php echo $base_path ? $base_path . '/host/dashboard.php' : 'host/dashboard.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Quản lý xe</a>
                         <?php if (hasRole('admin')): ?>
                             <a href="<?php echo $base_path ? $base_path . '/admin/dashboard.php' : 'admin/dashboard.php'; ?>" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Quản trị</a>
@@ -80,7 +72,6 @@ $messages_link = isLoggedIn()
                 <a href="<?php echo $base_path ? $base_path . '/client/my-bookings.php' : 'client/my-bookings.php'; ?>" class="py-2">Chuyến của tôi</a>
             <?php endif; ?>
             <a href="<?php echo $base_path ? $base_path . '/cars/index.php' : 'cars/index.php'; ?>" class="py-2">Danh sách xe</a>
-            <a href="<?php echo $messages_link; ?>" class="py-2">Hộp thư</a>
             <?php if (!isLoggedIn()): ?>
                 <a href="<?php echo $base_path ? $base_path . '/auth/login.php' : 'auth/login.php'; ?>" class="py-2 font-semibold text-primary">Đăng nhập</a>
             <?php endif; ?>
