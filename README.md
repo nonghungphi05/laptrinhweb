@@ -1,6 +1,6 @@
 # 🚗 Thuê Xe Tự Lái
 
-Website cho thuê xe ô tô (tự lái / có tài xế / dài hạn) – Mỗi user có thể vừa thuê xe vừa đăng xe cho thuê trên cùng một tài khoản.
+Website cho thuê xe tự lái – Mỗi user có thể vừa thuê xe vừa đăng xe cho thuê trên cùng một tài khoản.
 
 ## ✨ Tính năng chính
 
@@ -127,7 +127,7 @@ Xem chi tiết trong file `schema.sql`
 
 ## 🎯 Tính năng nổi bật
 
-1. **Thuê xe linh hoạt**: Thuê xe tự lái, có tài xế hoặc thuê dài hạn
+1. **Thuê xe linh hoạt**: Thuê xe tự lái cho mọi hành trình
 2. **Dual role**: Mỗi user có thể vừa là người thuê vừa là người cho thuê (chủ xe)
 3. **Đặt xe trực tiếp**: Đặt xe ngay trên trang chi tiết xe, tự động tính tổng tiền và kiểm tra trùng lịch
 4. **Đánh giá sau chuyến đi**: Khách có thể đánh giá, nhận xét xe đã thuê

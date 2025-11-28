@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS cars (
     seats INT DEFAULT 4,
     transmission ENUM('auto', 'manual') DEFAULT 'auto',
     fuel ENUM('gasoline', 'diesel', 'electric', 'hybrid') DEFAULT 'gasoline',
-    rental_type ENUM('self-drive', 'with-driver', 'long-term') DEFAULT 'self-drive',
     location VARCHAR(100) DEFAULT 'hcm',
     pickup_address VARCHAR(255),
     status ENUM('available', 'rented', 'maintenance') DEFAULT 'available',
@@ -156,20 +155,20 @@ INSERT INTO users (username, email, password, role, full_name, phone) VALUES
 ('user3', 'user3@example.com', '$2y$10$H47mtZqeAzFQQ9W2yooUZeVMuappZxf4zYzZ49gWkg.mJ/9T2KlpC', 'user', 'Lê Văn C', '0904567890'),
 ('user4', 'user4@example.com', '$2y$10$H47mtZqeAzFQQ9W2yooUZeVMuappZxf4zYzZ49gWkg.mJ/9T2KlpC', 'user', 'Phạm Thị D', '0905678901');
 
-INSERT INTO cars (owner_id, name, description, image, price_per_day, car_type, rental_type, location, status) VALUES
-(2, 'Toyota Vios 2023', 'Xe sedan 5 chỗ, tiết kiệm nhiên liệu, phù hợp đi phố và đường dài.', 'toyota-vios.jpg', 500000, 'sedan', 'self-drive', 'hcm', 'available'),
-(2, 'Honda City 2023', 'Xe sedan sang trọng, nội thất hiện đại, động cơ mạnh mẽ.', 'honda-city.jpg', 550000, 'sedan', 'self-drive', 'hcm', 'available'),
-(3, 'Ford Ranger 2022', 'Xe bán tải mạnh mẽ, phù hợp địa hình phức tạp và chở hàng.', 'ford-ranger.jpg', 1200000, 'pickup', 'self-drive', 'hanoi', 'available'),
-(3, 'Mazda CX-5 2023', 'SUV 7 chỗ rộng rãi, an toàn cho gia đình.', 'mazda-cx5.jpg', 900000, 'suv', 'self-drive', 'hcm', 'available'),
-(2, 'Hyundai Accent 2023', 'Xe sedan giá tốt, tiết kiệm nhiên liệu, hợp người mới lái.', 'hyundai-accent.jpg', 450000, 'sedan', 'self-drive', 'danang', 'available'),
-(3, 'Mitsubishi Xpander 2022', 'MPV 7 chỗ tiện nghi cho gia đình đông người.', 'mitsubishi-xpander.jpg', 700000, 'mpv', 'self-drive', 'hcm', 'available'),
-(4, 'Toyota Camry 2023', 'Xe sedan hạng sang kèm tài xế chuyên nghiệp.', 'toyota-camry-driver.jpg', 1500000, 'sedan', 'with-driver', 'hcm', 'available'),
-(4, 'Mercedes E-Class 2023', 'Xe sang trọng dành cho sự kiện và đón khách VIP.', 'mercedes-e-class-driver.jpg', 2500000, 'sedan', 'with-driver', 'hcm', 'available'),
-(5, 'Ford Transit 16 chỗ', 'Xe 16 chỗ có tài xế, phù hợp tour hoặc đưa đón sân bay.', 'ford-transit-driver.jpg', 2000000, 'van', 'with-driver', 'hanoi', 'available'),
-(4, 'Honda CR-V 2023', 'SUV 7 chỗ có tài xế, phù hợp du lịch gia đình.', 'honda-crv-driver.jpg', 1800000, 'suv', 'with-driver', 'hcm', 'available'),
-(5, 'Toyota Vios 2022', 'Xe sedan dành cho thuê dài hạn, bảo dưỡng định kỳ.', 'toyota-vios-longterm.jpg', 8000000, 'sedan', 'long-term', 'hcm', 'available'),
-(2, 'Hyundai Accent 2022', 'Xe thuê dài hạn cho doanh nghiệp/cá nhân.', 'hyundai-accent-longterm.jpg', 7000000, 'sedan', 'long-term', 'hanoi', 'available'),
-(3, 'Mazda CX-5 2022', 'SUV 7 chỗ thuê dài hạn cho gia đình hoặc công ty.', 'mazda-cx5-longterm.jpg', 12000000, 'suv', 'long-term', 'hcm', 'available');
+INSERT INTO cars (owner_id, name, description, image, price_per_day, car_type, location, status) VALUES
+(2, 'Toyota Vios 2023', 'Xe sedan 5 chỗ, tiết kiệm nhiên liệu, phù hợp đi phố và đường dài.', 'toyota-vios.jpg', 500000, 'sedan', 'hcm', 'available'),
+(2, 'Honda City 2023', 'Xe sedan sang trọng, nội thất hiện đại, động cơ mạnh mẽ.', 'honda-city.jpg', 550000, 'sedan', 'hcm', 'available'),
+(3, 'Ford Ranger 2022', 'Xe bán tải mạnh mẽ, phù hợp địa hình phức tạp và chở hàng.', 'ford-ranger.jpg', 1200000, 'pickup', 'hanoi', 'available'),
+(3, 'Mazda CX-5 2023', 'SUV 7 chỗ rộng rãi, an toàn cho gia đình.', 'mazda-cx5.jpg', 900000, 'suv', 'hcm', 'available'),
+(2, 'Hyundai Accent 2023', 'Xe sedan giá tốt, tiết kiệm nhiên liệu, hợp người mới lái.', 'hyundai-accent.jpg', 450000, 'sedan', 'danang', 'available'),
+(3, 'Mitsubishi Xpander 2022', 'MPV 7 chỗ tiện nghi cho gia đình đông người.', 'mitsubishi-xpander.jpg', 700000, 'mpv', 'hcm', 'available'),
+(4, 'Toyota Camry 2023', 'Sedan hạng sang, nội thất cao cấp.', 'toyota-camry-driver.jpg', 1500000, 'sedan', 'hcm', 'available'),
+(4, 'Mercedes E-Class 2023', 'Xe sang trọng dành cho sự kiện và đón khách VIP.', 'mercedes-e-class-driver.jpg', 2500000, 'sedan', 'hcm', 'available'),
+(5, 'Ford Transit 16 chỗ', 'Xe 16 chỗ rộng rãi, phù hợp tour hoặc đưa đón sân bay.', 'ford-transit-driver.jpg', 2000000, 'van', 'hanoi', 'available'),
+(4, 'Honda CR-V 2023', 'SUV 7 chỗ tiện nghi cho gia đình.', 'honda-crv-driver.jpg', 1800000, 'suv', 'hcm', 'available'),
+(5, 'Toyota Vios 2022', 'Xe sedan ổn định, bảo dưỡng định kỳ.', 'toyota-vios-longterm.jpg', 600000, 'sedan', 'hcm', 'available'),
+(2, 'Hyundai Accent 2022', 'Xe tự lái giá tốt cho doanh nghiệp/cá nhân.', 'hyundai-accent-longterm.jpg', 600000, 'sedan', 'hanoi', 'available'),
+(3, 'Mazda CX-5 2022', 'SUV 7 chỗ linh hoạt cho gia đình hoặc công ty.', 'mazda-cx5-longterm.jpg', 2000000, 'suv', 'hcm', 'available');
 
 INSERT INTO bookings (car_id, customer_id, start_date, end_date, total_price, status) VALUES
 (1, 4, '2025-10-20', '2025-10-23', 1500000, 'confirmed'),

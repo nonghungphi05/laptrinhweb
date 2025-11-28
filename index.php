@@ -106,7 +106,7 @@ $popular_locations = [
                                             Hành trình của bạn, lựa chọn của bạn
                                         </h1>
                                         <h2 class="text-white text-sm font-normal leading-normal md:text-base">
-                                            Khám phá hàng ngàn chiếc xe cho mọi chuyến đi. Thuê xe tự lái &amp; có tài xế một cách dễ dàng, an toàn và tiết kiệm.
+                                            Khám phá hàng ngàn chiếc xe tự lái cho mọi chuyến đi, dễ dàng, an toàn và tiết kiệm.
                                         </h2>
                                     </div>
                                     <label class="flex flex-col min-w-40 h-14 w-full max-w-[480px] md:h-16">
@@ -274,26 +274,6 @@ $popular_locations = [
                             <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="need" data-value="party">Tiếp khách, dự tiệc</button>
                         </div>
                         <input type="hidden" name="needs" id="selected-needs" value="">
-                    </div>
-
-                    <!-- Loại hình thuê -->
-                    <div>
-                        <label class="block text-sm font-semibold mb-3 text-[#181411] dark:text-white">Loại hình thuê</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="rental-type" data-value="self-drive">
-                                <span class="material-symbols-outlined text-sm mr-1 align-middle">key</span>
-                                Thuê xe tự lái
-                            </button>
-                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="rental-type" data-value="with-driver">
-                                <span class="material-symbols-outlined text-sm mr-1 align-middle">person</span>
-                                Thuê xe có tài xế
-                            </button>
-                            <button type="button" class="filter-option px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/10 transition-colors" data-filter="rental-type" data-value="long-term">
-                                <span class="material-symbols-outlined text-sm mr-1 align-middle">calendar_month</span>
-                                Thuê xe dài hạn
-                            </button>
-                        </div>
-                        <input type="hidden" name="rental_type" id="selected-rental-type" value="">
                     </div>
 
                     <!-- Theo xu hướng -->
@@ -489,8 +469,7 @@ $popular_locations = [
         const selectedFilters = {
             need: [],
             trend: [],
-            budget: [],
-            'rental-type': []
+            budget: []
         };
         
         document.querySelectorAll('.filter-option').forEach(option => {
@@ -511,7 +490,6 @@ $popular_locations = [
                 document.getElementById('selected-needs').value = selectedFilters.need.join(',');
                 document.getElementById('selected-trends').value = selectedFilters.trend.join(',');
                 document.getElementById('selected-budgets').value = selectedFilters.budget.join(',');
-                document.getElementById('selected-rental-type').value = selectedFilters['rental-type'].join(',');
             });
         });
         
@@ -526,11 +504,9 @@ $popular_locations = [
                 selectedFilters.need = [];
                 selectedFilters.trend = [];
                 selectedFilters.budget = [];
-                selectedFilters['rental-type'] = [];
                 document.getElementById('selected-needs').value = '';
                 document.getElementById('selected-trends').value = '';
                 document.getElementById('selected-budgets').value = '';
-                document.getElementById('selected-rental-type').value = '';
                 setLocation('hcm', 'TP. Hồ Chí Minh');
                 locationSearch.value = '';
                 locationSuggestions.classList.add('hidden');

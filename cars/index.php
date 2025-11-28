@@ -18,7 +18,6 @@ $base_path = getBasePath();
 
 $search = trim($_GET['search'] ?? '');
 $location = $_GET['location'] ?? '';
-$rental_type = $_GET['rental_type'] ?? '';
 $car_type = trim($_GET['car_type'] ?? '');
 $budget = $_GET['budget'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
@@ -40,12 +39,6 @@ if ($search !== '') {
 if ($location !== '') {
     $conditions[] = "c.location = ?";
     $params[] = $location;
-    $types .= "s";
-}
-
-if ($rental_type !== '') {
-    $conditions[] = "c.rental_type = ?";
-    $params[] = $rental_type;
     $types .= "s";
 }
 
@@ -122,12 +115,6 @@ $car_type_labels = [
     'hatchback' => 'Hatchback',
     'van'       => 'Xe khách'
 ];
-
-$rental_type_labels = [
-    'self-drive' => 'Xe tự lái',
-    'with-driver'=> 'Xe có tài xế',
-    'long-term'  => 'Thuê dài hạn',
-];
 ?>
 <!DOCTYPE html>
 <html class="light" lang="vi">
@@ -193,16 +180,7 @@ $rental_type_labels = [
                         </label>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="flex flex-col gap-2">
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Loại dịch vụ</span>
-                            <select name="rental_type" class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 focus:border-primary focus:ring-primary/30">
-                                <option value="">Tất cả</option>
-                                <option value="self-drive" <?php echo $rental_type === 'self-drive' ? 'selected' : ''; ?>>Xe tự lái</option>
-                                <option value="with-driver" <?php echo $rental_type === 'with-driver' ? 'selected' : ''; ?>>Xe có tài xế</option>
-                                <option value="long-term" <?php echo $rental_type === 'long-term' ? 'selected' : ''; ?>>Thuê dài hạn</option>
-                            </select>
-                        </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label class="flex flex-col gap-2">
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Loại xe</span>
                             <select name="car_type" class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 focus:border-primary focus:ring-primary/30">
@@ -277,10 +255,8 @@ $rental_type_labels = [
                                     <p class="text-sm text-gray-500 dark:text-gray-400">
                                         <?php
                                             $type_key = $car['car_type'];
-                                            $rt_key   = $car['rental_type'];
                                             $type_label = $car_type_labels[$type_key] ?? ucfirst($type_key);
-                                            $rt_label   = $rental_type_labels[$rt_key] ?? $rt_key;
-                                            echo htmlspecialchars($type_label . ' • ' . $rt_label);
+                                            echo htmlspecialchars($type_label . ' • Xe tự lái');
                                         ?>
                                     </p>
                                     <p class="text-primary font-bold text-xl mt-2"><?php echo number_format($car['price_per_day']); ?>đ<span class="text-sm text-gray-500">/ngày</span></p>

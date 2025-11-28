@@ -16,13 +16,12 @@ $owner_id = $_SESSION['user_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $car_type = $_POST['car_type'] ?? '';
-    $rental_type = $_POST['rental_type'] ?? '';
     $location = $_POST['location'] ?? 'hcm';
     $price_per_day = floatval($_POST['price_per_day'] ?? 0);
     $description = trim($_POST['description'] ?? '');
     $status = $_POST['status'] ?? 'available';
 
-    if ($name === '' || $car_type === '' || $rental_type === '' || $location === '' || $price_per_day <= 0) {
+if ($name === '' || $car_type === '' || $location === '' || $price_per_day <= 0) {
         $error = 'Vui lòng điền đầy đủ thông tin bắt buộc.';
     } else {
 $uploaded_images = [];
@@ -61,16 +60,15 @@ $uploaded_images = [];
         if ($error === '') {
             $primary_image = $uploaded_images[0] ?? '';
 
-            $stmt = $conn->prepare("INSERT INTO cars (owner_id, name, description, image, price_per_day, car_type, rental_type, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO cars (owner_id, name, description, image, price_per_day, car_type, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param(
-                "isssdssss",
+                "isssdsss",
                 $owner_id,
                 $name,
                 $description,
                 $primary_image,
                 $price_per_day,
                 $car_type,
-                $rental_type,
                 $location,
                 $status
             );
@@ -172,15 +170,6 @@ $uploaded_images = [];
                                        class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30">
                             </label>
                             <label class="flex flex-col gap-2">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Loại dịch vụ *</span>
-                                <select name="rental_type" required class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30">
-                                    <option value="">Chọn loại dịch vụ</option>
-                                    <option value="self-drive" <?php echo (($_POST['rental_type'] ?? '') === 'self-drive') ? 'selected' : ''; ?>>Xe tự lái</option>
-                                    <option value="with-driver" <?php echo (($_POST['rental_type'] ?? '') === 'with-driver') ? 'selected' : ''; ?>>Xe có tài xế</option>
-                                    <option value="long-term" <?php echo (($_POST['rental_type'] ?? '') === 'long-term') ? 'selected' : ''; ?>>Thuê dài hạn</option>
-                                </select>
-                            </label>
-                            <label class="flex flex-col gap-2">
                                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Loại xe *</span>
                                 <select name="car_type" required class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30">
                                     <option value="">Chọn loại xe</option>
@@ -227,13 +216,13 @@ $uploaded_images = [];
                                 <div class="flex flex-col gap-2 sm:flex-row">
                                     <input type="number" step="1000" min="0" name="price_per_day" required value="<?php echo htmlspecialchars($_POST['price_per_day'] ?? ''); ?>"
                                            class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30 flex-1"
-                                           placeholder="<?php echo ($_POST['rental_type'] ?? '') === 'long-term' ? 'Ví dụ: 8000000 (theo tháng)' : 'Ví dụ: 500000 (theo ngày)'; ?>">
+                                           placeholder="Ví dụ: 500000 (theo ngày)">
                                     <select name="status" class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30">
                                         <option value="available" <?php echo (($_POST['status'] ?? 'available') === 'available') ? 'selected' : ''; ?>>Còn xe</option>
                                         <option value="maintenance" <?php echo (($_POST['status'] ?? '') === 'maintenance') ? 'selected' : ''; ?>>Bảo trì</option>
                                     </select>
                                 </div>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">Nếu là thuê dài hạn, nhập giá theo tháng.</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">Nhập giá thuê theo ngày hoặc theo chuyến tùy dịch vụ.</span>
                             </label>
                             <label class="flex flex-col gap-2 md:col-span-2">
                                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Mô tả chi tiết</span>

@@ -60,7 +60,6 @@ CẤU TRÚC DỰ ÁN - WEBSITE THUÊ XE
 │
 ├── index.php                    - Trang chủ Tailwind
 ├── schema.sql                   - Database schema (phiên bản thuê xe thuần, không diễn đàn)
-├── migration_add_rental_type.sql- Script legacy thêm cột rental_type cho DB cũ
 └── README.md                    - Tài liệu hướng dẫn
 
 ========================================
@@ -75,7 +74,7 @@ DATABASE SCHEMA
 2. cars                     [Xe cho thuê]
    - id, owner_id (user đăng xe)
    - name, description, image
-   - price_per_day, car_type, rental_type, location, status
+   - price_per_day, car_type, location, status
 
 3. bookings                 [Đơn đặt xe]
    - id, car_id, customer_id

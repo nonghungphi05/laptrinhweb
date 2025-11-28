@@ -36,12 +36,6 @@ $car_type_labels = [
     'van'       => 'Xe khách',
 ];
 
-$rental_type_labels = [
-    'self-drive'  => 'Xe tự lái',
-    'with-driver' => 'Xe có tài xế',
-    'long-term'   => 'Thuê dài hạn',
-];
-
 $location_labels = [
     'hcm' => 'TP. Hồ Chí Minh',
     'hanoi' => 'Hà Nội',
@@ -194,7 +188,6 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                             </div>
                             <div class="text-sm text-slate space-y-1">
                                 <p><strong>Loại xe:</strong> <?php echo htmlspecialchars($car_type_labels[$car['car_type']] ?? ucfirst($car['car_type'])); ?></p>
-                                <p><strong>Hình thức thuê:</strong> <?php echo htmlspecialchars($rental_type_labels[$car['rental_type']] ?? $car['rental_type']); ?></p>
                                 <p><strong>Giá thuê:</strong> <?php echo number_format($car['price_per_day']); ?> VNĐ/ngày</p>
                                 <p><strong>Khu vực:</strong> <?php echo htmlspecialchars($location_labels[$car['location']] ?? $car['location']); ?></p>
                             </div>

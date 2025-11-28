@@ -78,12 +78,6 @@ $car_type_labels = [
     'van'       => 'Xe khách',
 ];
 
-$rental_type_labels = [
-    'self-drive' => 'Xe tự lái',
-    'with-driver'=> 'Xe có tài xế',
-    'long-term'  => 'Thuê dài hạn',
-];
-
 $location_labels = [
     'hcm'     => 'TP. Hồ Chí Minh',
     'hanoi'   => 'Hà Nội',
@@ -160,7 +154,7 @@ $can_book = isLoggedIn()
 
                     <div class="border-b border-border-light pb-6 space-y-6">
                         <h3 class="text-2xl font-bold text-secondary">Thông tin chi tiết</h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">directions_car</span>
                                 <p class="text-sm text-gray-500 mt-2">Loại xe</p>
@@ -168,16 +162,6 @@ $can_book = isLoggedIn()
                                     <?php
                                         $type_key = $car['car_type'];
                                         echo htmlspecialchars($car_type_labels[$type_key] ?? ucfirst($type_key));
-                                    ?>
-                                </p>
-                            </div>
-                            <div class="p-4 rounded-2xl bg-white shadow-sm">
-                                <span class="material-symbols-outlined text-3xl text-primary">auto_mode</span>
-                                <p class="text-sm text-gray-500 mt-2">Hình thức thuê</p>
-                                <p class="font-semibold">
-                                    <?php
-                                        $rt_key = $car['rental_type'];
-                                        echo htmlspecialchars($rental_type_labels[$rt_key] ?? $rt_key);
                                     ?>
                                 </p>
                             </div>
