@@ -15,19 +15,35 @@ $cars_query = "SELECT c.*, u.full_name
                JOIN users u ON c.owner_id = u.id
                WHERE c.status = 'available'
                ORDER BY c.created_at DESC
-               LIMIT 8";
+               LIMIT 10";
 $cars_result = $conn->query($cars_query);
 $featured_cars = [];
 if ($cars_result && $cars_result->num_rows > 0) {
     $featured_cars = $cars_result->fetch_all(MYSQLI_ASSOC);
 }
 
-// Địa điểm nổi bật
+// Địa điểm nổi bật với hình ảnh
 $popular_locations = [
-    ['code' => 'hcm', 'name' => 'TP. Hồ Chí Minh'],
-    ['code' => 'hanoi', 'name' => 'Hà Nội'],
-    ['code' => 'danang', 'name' => 'Đà Nẵng'],
-    ['code' => 'dalat', 'name' => 'Đà Lạt']
+    [
+        'code' => 'hcm', 
+        'name' => 'TP. Hồ Chí Minh',
+        'image' => 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80'
+    ],
+    [
+        'code' => 'hanoi', 
+        'name' => 'Hà Nội',
+        'image' => 'https://images.unsplash.com/photo-1672578918034-5e164fe5b7dc?w=800&q=80'
+    ],
+    [
+        'code' => 'danang', 
+        'name' => 'Đà Nẵng',
+        'image' => 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=800&q=80'
+    ],
+    [
+        'code' => 'dalat', 
+        'name' => 'Đà Lạt',
+        'image' => 'https://images.unsplash.com/photo-1558338475-7ac335028946?w=800&q=80'
+    ]
 ];
 ?>
 <!DOCTYPE html>
@@ -157,9 +173,9 @@ $popular_locations = [
                                     <a href="<?php echo $base_path ? $base_path . '/cars/index.php?location=' . $loc['code'] : 'cars/index.php?location=' . $loc['code']; ?>" 
                                        class="relative overflow-hidden rounded-lg group">
                                         <div class="w-full bg-center bg-no-repeat aspect-square bg-cover transition-transform duration-300 group-hover:scale-110" 
-                                             style='background-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent), url("https://images.unsplash.com/photo-1539650116574-75c0c6d73aa0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80");'>
+                                             style='background-image: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, transparent 100%), url("<?php echo $loc['image']; ?>");'>
                                         </div>
-                                        <p class="absolute bottom-4 left-4 text-white text-lg font-bold"><?php echo htmlspecialchars($loc['name']); ?></p>
+                                        <p class="absolute bottom-4 left-4 text-white text-lg font-bold drop-shadow-lg"><?php echo htmlspecialchars($loc['name']); ?></p>
                                     </a>
                                 <?php endforeach; ?>
                             </div>

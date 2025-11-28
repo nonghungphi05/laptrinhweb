@@ -42,6 +42,16 @@ $rental_type_labels = [
     'long-term'   => 'Thuê dài hạn',
 ];
 
+$location_labels = [
+    'hcm' => 'TP. Hồ Chí Minh',
+    'hanoi' => 'Hà Nội',
+    'danang' => 'Đà Nẵng',
+    'cantho' => 'Cần Thơ',
+    'nhatrang' => 'Nha Trang',
+    'dalat' => 'Đà Lạt',
+    'phuquoc' => 'Phú Quốc'
+];
+
 $error = '';
 $success = '';
 
@@ -49,16 +59,21 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
+    $pickup_time = $_POST['pickup_time'] ?? '17:00';
+    $return_time = $_POST['return_time'] ?? '17:00';
+    $pickup_type = $_POST['pickup_type'] ?? 'self';
+    $pickup_location = $_POST['pickup_location'] ?? '';
     
     if (empty($start_date) || empty($end_date)) {
         $error = 'Vui lòng chọn ngày bắt đầu và kết thúc';
     } elseif (strtotime($start_date) < strtotime(date('Y-m-d'))) {
         $error = 'Ngày bắt đầu phải từ hôm nay trở đi';
     } elseif (strtotime($end_date) <= strtotime($start_date)) {
-        $error = 'Ngày kết thúc phải sau ngày bắt đầu';
+        $error = 'Ngày trả xe phải sau ngày nhận xe ít nhất 1 ngày';
+    } elseif ($pickup_type === 'delivery' && empty($pickup_location)) {
+        $error = 'Vui lòng nhập địa chỉ giao xe';
     } else {
         // Kiểm tra trùng lịch (overlap detection)
-        // 2 khoảng thời gian overlap nếu: start_date_moi <= end_date_cu AND end_date_moi >= start_date_cu
         $stmt = $conn->prepare("SELECT id FROM bookings 
             WHERE car_id = ? 
             AND status = 'confirmed'
@@ -75,9 +90,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $days = (strtotime($end_date) - strtotime($start_date)) / 86400;
             $total_price = $days * $car['price_per_day'];
             
+            // Nếu giao xe tận nơi, cộng thêm phí
+            $delivery_fee = 0;
+            if ($pickup_type === 'delivery') {
+                $delivery_fee = 100000; // Phí giao xe 100k
+                $total_price += $delivery_fee;
+            }
+            
             // Tạo booking
-            $stmt = $conn->prepare("INSERT INTO bookings (car_id, customer_id, start_date, end_date, total_price, status) VALUES (?, ?, ?, ?, ?, 'pending')");
-            $stmt->bind_param("iissd", $car_id, $user_id, $start_date, $end_date, $total_price);
+            $stmt = $conn->prepare("INSERT INTO bookings (car_id, customer_id, start_date, pickup_time, end_date, return_time, pickup_location, pickup_type, total_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+            $stmt->bind_param("iissssssd", $car_id, $user_id, $start_date, $pickup_time, $end_date, $return_time, $pickup_location, $pickup_type, $total_price);
             
             if ($stmt->execute()) {
                 $booking_id = $conn->insert_id;
@@ -91,6 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Địa chỉ nhận xe mặc định từ chủ xe
+$default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['location']] ?? $car['location']);
 ?>
 <!DOCTYPE html>
 <html lang="vi" class="light">
@@ -119,6 +144,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
 </head>
 <body class="font-display bg-background text-[#1e1c1a]">
     <div class="min-h-screen flex flex-col">
@@ -137,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <?php if ($error): ?>
-                    <div class="rounded-2xl border border-red-200 bg-red-50 text-red-700 px 4 py-3">
+                    <div class="rounded-2xl border border-red-200 bg-red-50 text-red-700 px-4 py-3">
                         <?php echo htmlspecialchars($error); ?>
                     </div>
                 <?php endif; ?>
@@ -164,36 +194,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <p><strong>Loại xe:</strong> <?php echo htmlspecialchars($car_type_labels[$car['car_type']] ?? ucfirst($car['car_type'])); ?></p>
                                 <p><strong>Hình thức thuê:</strong> <?php echo htmlspecialchars($rental_type_labels[$car['rental_type']] ?? $car['rental_type']); ?></p>
                                 <p><strong>Giá thuê:</strong> <?php echo number_format($car['price_per_day']); ?> VNĐ/ngày</p>
+                                <p><strong>Khu vực:</strong> <?php echo htmlspecialchars($location_labels[$car['location']] ?? $car['location']); ?></p>
                             </div>
                         </div>
                         <div class="border border-[#eee1d4] rounded-2xl p-5 bg-[#fffaf4] text-sm text-slate space-y-2">
                             <p class="text-xs uppercase tracking-[0.4em]">Lưu ý</p>
                             <p>• Vui lòng mang theo CMND/CCCD và GPLX khi nhận xe.</p>
+                            <p>• <strong>Thuê tối thiểu 1 ngày</strong> (trả xe ngày hôm sau).</p>
+                            <p>• Nhận xe: 17:00 - 22:00 | Trả xe: 06:00 - 22:00</p>
                             <p>• Hủy miễn phí trong 24h đầu; sau đó phí 20% tổng tiền.</p>
-                            <p>• Chủ xe có quyền từ chối nếu thông tin không chính xác.</p>
+                            <p>• Phí giao xe tận nơi: 100.000 VNĐ.</p>
                         </div>
                     </div>
 
                     <form method="POST" id="bookingForm" class="space-y-6">
+                        <!-- Ngày và giờ -->
                         <div class="grid gap-4 md:grid-cols-2">
-                            <div class="p-4 border border-[#eee1d4] rounded-2xl">
-                                <label class="text-sm text-slate block mb-2" for="start_date">Ngày bắt đầu *</label>
-                                <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">calendar_month</span>
-                                    <input type="date" id="start_date" name="start_date"
-                                           class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
-                                           min="<?php echo date('Y-m-d'); ?>"
-                                           value="<?php echo htmlspecialchars($_POST['start_date'] ?? ''); ?>" required>
+                            <div class="p-4 border border-[#eee1d4] rounded-2xl space-y-4">
+                                <p class="font-semibold text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary">login</span>
+                                    Nhận xe
+                                </p>
+                                <div>
+                                    <label class="text-sm text-slate block mb-2" for="start_date">Ngày nhận xe *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">calendar_month</span>
+                                        <input type="date" id="start_date" name="start_date"
+                                               class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
+                                               min="<?php echo date('Y-m-d'); ?>"
+                                               value="<?php echo htmlspecialchars($_POST['start_date'] ?? ''); ?>" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-sm text-slate block mb-2" for="pickup_time">Giờ nhận xe *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">schedule</span>
+                                        <select id="pickup_time" name="pickup_time"
+                                                class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary appearance-none">
+                                            <?php for ($h = 17; $h <= 22; $h++): ?>
+                                                <?php $time = sprintf('%02d:00', $h); ?>
+                                                <option value="<?php echo $time; ?>" <?php echo ($_POST['pickup_time'] ?? '17:00') === $time ? 'selected' : ''; ?>>
+                                                    <?php echo $time; ?>
+                                                </option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <p class="text-xs text-slate mt-1">Nhận xe từ 17:00 - 22:00</p>
                                 </div>
                             </div>
-                            <div class="p-4 border border-[#eee1d4] rounded-2xl">
-                                <label class="text-sm text-slate block mb-2" for="end_date">Ngày kết thúc *</label>
+                            <div class="p-4 border border-[#eee1d4] rounded-2xl space-y-4">
+                                <p class="font-semibold text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary">logout</span>
+                                    Trả xe
+                                </p>
+                                <div>
+                                    <label class="text-sm text-slate block mb-2" for="end_date">Ngày trả xe *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">event</span>
+                                        <input type="date" id="end_date" name="end_date"
+                                               class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
+                                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                                               value="<?php echo htmlspecialchars($_POST['end_date'] ?? ''); ?>" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-sm text-slate block mb-2" for="return_time">Giờ trả xe *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">schedule</span>
+                                        <select id="return_time" name="return_time"
+                                                class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary appearance-none">
+                                            <?php for ($h = 6; $h <= 22; $h++): ?>
+                                                <?php $time = sprintf('%02d:00', $h); ?>
+                                                <option value="<?php echo $time; ?>" <?php echo ($_POST['return_time'] ?? '17:00') === $time ? 'selected' : ''; ?>>
+                                                    <?php echo $time; ?>
+                                                </option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <p class="text-xs text-slate mt-1">Trả xe từ 06:00 - 22:00</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Địa điểm nhận xe -->
+                        <div class="p-5 border border-[#eee1d4] rounded-2xl space-y-4">
+                            <p class="font-semibold text-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">location_on</span>
+                                Hình thức nhận xe
+                            </p>
+                            
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <label class="flex items-start gap-3 p-4 border border-[#e5d5c7] rounded-xl cursor-pointer hover:border-primary transition-colors pickup-option" data-type="self">
+                                    <input type="radio" name="pickup_type" value="self" class="mt-1 text-primary focus:ring-primary" 
+                                           <?php echo ($_POST['pickup_type'] ?? 'self') === 'self' ? 'checked' : ''; ?>>
+                                    <div class="flex-1">
+                                        <p class="font-semibold">Tự đến lấy xe</p>
+                                        <p class="text-sm text-slate mt-1">
+                                            <span class="material-symbols-outlined text-sm align-middle">pin_drop</span>
+                                            <?php echo htmlspecialchars($default_pickup_address); ?>
+                                        </p>
+                                        <p class="text-xs text-green-600 mt-1">Miễn phí</p>
+                                    </div>
+                                </label>
+                                
+                                <label class="flex items-start gap-3 p-4 border border-[#e5d5c7] rounded-xl cursor-pointer hover:border-primary transition-colors pickup-option" data-type="delivery">
+                                    <input type="radio" name="pickup_type" value="delivery" class="mt-1 text-primary focus:ring-primary"
+                                           <?php echo ($_POST['pickup_type'] ?? '') === 'delivery' ? 'checked' : ''; ?>>
+                                    <div class="flex-1">
+                                        <p class="font-semibold">Giao xe tận nơi</p>
+                                        <p class="text-sm text-slate mt-1">Chúng tôi sẽ giao xe đến địa chỉ của bạn</p>
+                                        <p class="text-xs text-primary mt-1">+ 100.000 VNĐ</p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Địa chỉ giao xe (hiển thị khi chọn giao tận nơi) -->
+                            <div id="delivery_address_section" class="<?php echo ($_POST['pickup_type'] ?? 'self') === 'delivery' ? '' : 'hidden'; ?>">
+                                <label class="text-sm text-slate block mb-2" for="pickup_location">Địa chỉ giao xe *</label>
                                 <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">event</span>
-                                    <input type="date" id="end_date" name="end_date"
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">home</span>
+                                    <input type="text" id="pickup_location" name="pickup_location"
                                            class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
-                                           min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                                           value="<?php echo htmlspecialchars($_POST['end_date'] ?? ''); ?>" required>
+                                           placeholder="Nhập địa chỉ đầy đủ..."
+                                           value="<?php echo htmlspecialchars($_POST['pickup_location'] ?? ''); ?>">
+                                </div>
+                            </div>
+
+                            <!-- Hiển thị địa chỉ chủ xe khi chọn tự đến -->
+                            <div id="self_pickup_info" class="<?php echo ($_POST['pickup_type'] ?? 'self') === 'self' ? '' : 'hidden'; ?>">
+                                <div class="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                    <span class="material-symbols-outlined text-blue-600">info</span>
+                                    <div class="text-sm">
+                                        <p class="font-semibold text-blue-800">Địa chỉ nhận xe:</p>
+                                        <p class="text-blue-700"><?php echo htmlspecialchars($default_pickup_address); ?></p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -204,6 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div>
                                     <p class="text-4xl font-bold text-primary"><span id="totalPrice">0</span> VNĐ</p>
                                     <p class="text-slate mt-1">Số ngày: <span id="days">0</span> ngày</p>
+                                    <p class="text-sm text-slate" id="deliveryFeeText"></p>
                                 </div>
                                 <div class="text-sm text-slate bg-[#fff2e3] border border-dashed border-primary/40 rounded-xl px-4 py-3">
                                     <p><strong>Chính sách:</strong></p>
@@ -233,25 +368,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script>
         const pricePerDay = <?php echo $car['price_per_day']; ?>;
+        const deliveryFee = 100000;
         const startDateInput = document.getElementById('start_date');
         const endDateInput = document.getElementById('end_date');
+        const pickupTypeInputs = document.querySelectorAll('input[name="pickup_type"]');
+        const deliveryAddressSection = document.getElementById('delivery_address_section');
+        const selfPickupInfo = document.getElementById('self_pickup_info');
+        const deliveryFeeText = document.getElementById('deliveryFeeText');
 
         function calculateTotal() {
             const startDate = new Date(startDateInput.value);
             const endDate = new Date(endDateInput.value);
+            const isDelivery = document.querySelector('input[name="pickup_type"]:checked')?.value === 'delivery';
+            
             if (startDate && endDate && endDate > startDate) {
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                const total = days * pricePerDay;
+                let days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                let total = days * pricePerDay;
+                
+                if (isDelivery) {
+                    total += deliveryFee;
+                    deliveryFeeText.textContent = '+ Phí giao xe: 100.000 VNĐ';
+                } else {
+                    deliveryFeeText.textContent = '';
+                }
+                
                 document.getElementById('days').textContent = days;
                 document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN');
             } else {
                 document.getElementById('days').textContent = '0';
                 document.getElementById('totalPrice').textContent = '0';
+                deliveryFeeText.textContent = '';
             }
         }
 
-        startDateInput.addEventListener('change', calculateTotal);
+        function toggleDeliverySection() {
+            const isDelivery = document.querySelector('input[name="pickup_type"]:checked')?.value === 'delivery';
+            
+            if (isDelivery) {
+                deliveryAddressSection.classList.remove('hidden');
+                selfPickupInfo.classList.add('hidden');
+                document.getElementById('pickup_location').required = true;
+            } else {
+                deliveryAddressSection.classList.add('hidden');
+                selfPickupInfo.classList.remove('hidden');
+                document.getElementById('pickup_location').required = false;
+            }
+            
+            calculateTotal();
+        }
+
+        startDateInput.addEventListener('change', function() {
+            // Cập nhật min của end_date = start_date + 1 ngày
+            if (this.value) {
+                const startDate = new Date(this.value);
+                startDate.setDate(startDate.getDate() + 1);
+                const minEndDate = startDate.toISOString().split('T')[0];
+                endDateInput.min = minEndDate;
+                
+                // Nếu end_date hiện tại <= start_date, reset end_date
+                if (endDateInput.value && endDateInput.value <= this.value) {
+                    endDateInput.value = minEndDate;
+                }
+            }
+            calculateTotal();
+        });
         endDateInput.addEventListener('change', calculateTotal);
+        pickupTypeInputs.forEach(input => {
+            input.addEventListener('change', toggleDeliverySection);
+        });
+
+        // Highlight selected option
+        document.querySelectorAll('.pickup-option').forEach(option => {
+            option.querySelector('input').addEventListener('change', function() {
+                document.querySelectorAll('.pickup-option').forEach(o => {
+                    o.classList.remove('border-primary', 'bg-primary/5');
+                    o.classList.add('border-[#e5d5c7]');
+                });
+                if (this.checked) {
+                    option.classList.add('border-primary', 'bg-primary/5');
+                    option.classList.remove('border-[#e5d5c7]');
+                }
+            });
+            
+            // Initial state
+            if (option.querySelector('input').checked) {
+                option.classList.add('border-primary', 'bg-primary/5');
+                option.classList.remove('border-[#e5d5c7]');
+            }
+        });
+
+        // Initial calculation
+        calculateTotal();
     </script>
 </body>
 </html>

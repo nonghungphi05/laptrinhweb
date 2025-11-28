@@ -581,12 +581,6 @@ if ($active_view === 'reviews') {
                             <span class="material-symbols-outlined">add_circle</span>
                             <span>Thêm xe mới</span>
                         </a>
-                        <button class="relative text-text-muted hover:text-text-main">
-                            <span class="material-symbols-outlined text-2xl">notifications</span>
-                            <?php if ($pending_bookings > 0): ?>
-                                <span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
-                            <?php endif; ?>
-                        </button>
                         <div class="flex items-center gap-3">
                             <div class="bg-center bg-no-repeat bg-cover rounded-full w-10 h-10" style='background-image: url("https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=f98006&color=fff");'></div>
                             <div>

@@ -35,9 +35,6 @@ $host_cta_link = isLoggedIn()
         </nav>
         <div class="flex items-center gap-2">
             <?php if (isLoggedIn()): ?>
-                <button type="button" class="hidden md:flex h-10 w-10 items-center justify-center rounded-full text-[#181411] hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800 transition-colors" aria-label="Ưu đãi">
-                    <span class="material-symbols-outlined">card_giftcard</span>
-                </button>
                 <div class="relative group">
                     <button type="button" class="flex items-center gap-2" aria-haspopup="true" aria-expanded="false">
                         <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-gray-300"
