@@ -194,11 +194,22 @@ $first_name = trim(explode(' ', $user_name)[0] ?? $user_name);
 $stmt = $conn->prepare("SELECT c.*, 
     (SELECT COUNT(*) FROM bookings WHERE car_id = c.id) as total_bookings,
     (SELECT COUNT(*) FROM bookings WHERE car_id = c.id AND status = 'pending') as pending_bookings,
-    (SELECT AVG(rating) FROM reviews WHERE car_id = c.id) as avg_rating
+    (SELECT AVG(rating) FROM reviews WHERE car_id = c.id) as avg_rating,
+    (SELECT COUNT(*) FROM bookings WHERE car_id = c.id AND status = 'confirmed' AND CURDATE() BETWEEN start_date AND end_date) as is_currently_rented
     FROM cars c WHERE owner_id = ? ORDER BY created_at DESC");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $cars = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Cập nhật trạng thái xe dựa trên booking đang diễn ra
+foreach ($cars as &$car) {
+    if ($car['is_currently_rented'] > 0 && $car['status'] === 'available') {
+        $car['display_status'] = 'rented';
+    } else {
+        $car['display_status'] = $car['status'];
+    }
+}
+unset($car);
 
 $stmt = $conn->prepare("SELECT COUNT(*) as total FROM cars WHERE owner_id = ?");
 $stmt->bind_param("i", $user_id);
@@ -312,7 +323,7 @@ if ($active_view === 'calendar') {
         FROM bookings b
         JOIN cars c ON b.car_id = c.id
         JOIN users u ON b.customer_id = u.id
-        WHERE c.owner_id = ? AND b.start_date >= CURDATE()
+        WHERE c.owner_id = ? AND b.start_date >= CURDATE() AND b.status NOT IN ('cancelled', 'rejected')
         ORDER BY b.start_date ASC
         LIMIT 6");
     $upcoming_stmt->bind_param("i", $user_id);
@@ -323,6 +334,7 @@ if ($active_view === 'calendar') {
 }
 
 if ($active_view === 'earnings') {
+    // Tính tổng thu nhập từ payments
     $balance_stmt = $conn->prepare("SELECT 
         SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END) as completed_amount,
         SUM(CASE WHEN p.status = 'pending' THEN p.amount ELSE 0 END) as pending_amount
@@ -333,9 +345,27 @@ if ($active_view === 'earnings') {
     $balance_stmt->bind_param("i", $user_id);
     $balance_stmt->execute();
     $balance_data = $balance_stmt->get_result()->fetch_assoc();
-    $earnings_cards['available_balance'] = (float)($balance_data['completed_amount'] ?? 0);
-    $earnings_cards['pending_payout'] = (float)($balance_data['pending_amount'] ?? 0);
-    $earnings_cards['total_earnings'] = $earnings_cards['available_balance'] + $earnings_cards['pending_payout'];
+    $total_completed = (float)($balance_data['completed_amount'] ?? 0);
+    $total_pending_payments = (float)($balance_data['pending_amount'] ?? 0);
+    
+    // Tính tổng số tiền đã yêu cầu rút (approved hoặc pending)
+    $payout_stmt = $conn->prepare("SELECT 
+        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) as approved_amount,
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount
+        FROM payout_requests 
+        WHERE owner_id = ?");
+    $payout_stmt->bind_param("i", $user_id);
+    $payout_stmt->execute();
+    $payout_data = $payout_stmt->get_result()->fetch_assoc();
+    $total_withdrawn = (float)($payout_data['approved_amount'] ?? 0);
+    $pending_withdrawal = (float)($payout_data['pending_amount'] ?? 0);
+    
+    // Số dư khả dụng = Tổng completed - Đã rút - Đang chờ rút
+    $earnings_cards['available_balance'] = $total_completed - $total_withdrawn - $pending_withdrawal;
+    // Đang chờ thanh toán = Payments pending (tiền từ booking chưa được thanh toán)
+    $earnings_cards['pending_payout'] = $total_pending_payments;
+    // Tổng thu nhập = Tất cả payments (completed + pending)
+    $earnings_cards['total_earnings'] = $total_completed + $total_pending_payments;
 
     $chart_stmt = $conn->prepare("SELECT DATE_FORMAT(p.created_at, '%Y-%m') as month_label, SUM(p.amount) as total
         FROM payments p
@@ -636,16 +666,17 @@ if ($active_view === 'reviews') {
                                 <?php foreach ($cars as $car):
                                     $status_styles = [
                                         'available' => 'bg-green-100 text-green-800',
-                                        'rented' => 'bg-yellow-100 text-yellow-800',
+                                        'rented' => 'bg-blue-100 text-blue-800',
                                         'maintenance' => 'bg-red-100 text-red-800'
                                     ];
                                     $status_text = [
                                         'available' => 'Đang trống',
-                                        'rented' => 'Đã được thuê',
+                                        'rented' => 'Đang thuê',
                                         'maintenance' => 'Bảo trì'
                                     ];
-                                    $status_class = $status_styles[$car['status']] ?? 'bg-gray-100 text-gray-800';
-                                    $status_label = $status_text[$car['status']] ?? ucfirst($car['status']);
+                                    $display_status = $car['display_status'] ?? $car['status'];
+                                    $status_class = $status_styles[$display_status] ?? 'bg-gray-100 text-gray-800';
+                                    $status_label = $status_text[$display_status] ?? ucfirst($display_status);
                                 ?>
                                     <div class="flex flex-col sm:flex-row items-start gap-4 rounded-xl border border-border-color bg-white p-4">
                                         <img class="aspect-[4/3] w-full sm:w-48 h-auto object-cover rounded-lg" src="<?php echo $base_path ? $base_path . '/uploads/' : '../uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>" alt="<?php echo htmlspecialchars($car['name']); ?>" onerror="this.src='<?php echo $base_path ? $base_path . '/uploads/default-car.jpg' : '../uploads/default-car.jpg'; ?>'">
@@ -907,12 +938,12 @@ if ($active_view === 'reviews') {
                                     <tr><td colspan="6" class="py-6 text-center text-text-muted">Chưa có giao dịch nào.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($transaction_history as $transaction):
-                                        $status_colors = [
-                                            'completed' => 'bg-green-100 text-green-800',
-                                            'pending' => 'bg-yellow-100 text-yellow-800',
-                                            'failed' => 'bg-red-100 text-red-800'
+                                        $status_config = [
+                                            'completed' => ['text' => 'Đã thanh toán', 'class' => 'bg-green-100 text-green-800'],
+                                            'pending' => ['text' => 'Chờ thanh toán', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                            'failed' => ['text' => 'Thất bại', 'class' => 'bg-red-100 text-red-800']
                                         ];
-                                        $badge = $status_colors[$transaction['status']] ?? 'bg-gray-100 text-gray-800';
+                                        $status = $status_config[$transaction['status']] ?? ['text' => $transaction['status'], 'class' => 'bg-gray-100 text-gray-800'];
                                     ?>
                                         <tr class="border-b border-border-color/60">
                                             <td class="py-3 font-semibold">#<?php echo (int)$transaction['transaction_id']; ?></td>
@@ -921,8 +952,8 @@ if ($active_view === 'reviews') {
                                             <td class="py-3 font-semibold text-text-main"><?php echo number_format($transaction['amount']); ?> đ</td>
                                             <td class="py-3 text-text-muted"><?php echo date('d/m/Y', strtotime($transaction['created_at'])); ?></td>
                                             <td class="py-3">
-                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold <?php echo $badge; ?>">
-                                                    <?php echo ucfirst($transaction['status']); ?>
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold <?php echo $status['class']; ?>">
+                                                    <?php echo $status['text']; ?>
                                                 </span>
                                             </td>
                                         </tr>
@@ -1047,7 +1078,8 @@ if ($active_view === 'reviews') {
                                         'rented' => ['text' => 'Đang thuê', 'class' => 'bg-blue-100 text-blue-700'],
                                         'maintenance' => ['text' => 'Tạm ẩn', 'class' => 'bg-gray-100 text-gray-600']
                                     ];
-                                    $status = $status_config[$car['status']] ?? ['text' => $car['status'], 'class' => 'bg-gray-100 text-gray-600'];
+                                    $display_status = $car['display_status'] ?? $car['status'];
+                                    $status = $status_config[$display_status] ?? ['text' => $display_status, 'class' => 'bg-gray-100 text-gray-600'];
                                 ?>
                                     <div class="flex flex-col sm:flex-row gap-4 p-4 border border-border-color rounded-xl hover:shadow-md transition-shadow">
                                         <img src="<?php echo $base_path ? $base_path . '/uploads/' : '../uploads/'; ?><?php echo htmlspecialchars($car['image'] ?: 'default-car.jpg'); ?>" 

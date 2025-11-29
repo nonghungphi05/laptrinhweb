@@ -142,12 +142,12 @@ function autoCancelExpiredBookings($minutes = 15) {
     global $conn;
     
     if (!isset($conn) || $conn->connect_errno) {
-        return;
+        return 0;
     }
 
-    $sql = "
-        UPDATE bookings b
-        SET b.status = 'cancelled'
+    // Lấy danh sách booking_id sẽ bị hủy
+    $select_sql = "
+        SELECT b.id FROM bookings b
         WHERE b.status = 'pending'
           AND TIMESTAMPDIFF(MINUTE, b.created_at, NOW()) >= ?
           AND NOT EXISTS (
@@ -156,12 +156,43 @@ function autoCancelExpiredBookings($minutes = 15) {
               AND p.status = 'completed'
           )
     ";
-
-    if ($stmt = $conn->prepare($sql)) {
+    
+    $booking_ids = [];
+    if ($stmt = $conn->prepare($select_sql)) {
         $stmt->bind_param('i', $minutes);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $booking_ids[] = $row['id'];
+        }
+        $stmt->close();
+    }
+    
+    if (empty($booking_ids)) {
+        return 0;
+    }
+    
+    // Cập nhật bookings thành cancelled
+    $ids_placeholder = implode(',', array_fill(0, count($booking_ids), '?'));
+    $types = str_repeat('i', count($booking_ids));
+    
+    $update_booking_sql = "UPDATE bookings SET status = 'cancelled' WHERE id IN ($ids_placeholder)";
+    if ($stmt = $conn->prepare($update_booking_sql)) {
+        $stmt->bind_param($types, ...$booking_ids);
+        $stmt->execute();
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+    }
+    
+    // Cập nhật payments thành failed (nếu có và chưa completed)
+    $update_payment_sql = "UPDATE payments SET status = 'failed' WHERE booking_id IN ($ids_placeholder) AND status != 'completed'";
+    if ($stmt = $conn->prepare($update_payment_sql)) {
+        $stmt->bind_param($types, ...$booking_ids);
         $stmt->execute();
         $stmt->close();
     }
+    
+    return $affected_rows;
 }
 
 ?>

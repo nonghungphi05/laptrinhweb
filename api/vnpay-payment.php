@@ -60,7 +60,7 @@ if ($amount <= 0) {
 // VNPay yêu cầu mỗi giao dịch có mã tham chiếu duy nhất.
 // Gắn thêm timestamp để tránh bị báo "giao dịch đã tồn tại"
 $vnp_TxnRef    = $booking_id . '-' . time();
-$vnp_Amount    = $amount * 100; // VNPay dùng đơn vị VNĐ * 100
+$vnp_Amount    = $amount * 100;
 $vnp_IpAddr    = $_SERVER['REMOTE_ADDR'];
 $vnp_Locale    = 'vn';
 $vnp_OrderInfo = 'Thanh toan don dat xe #' . $booking_id;

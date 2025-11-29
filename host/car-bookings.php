@@ -52,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $stmt = $conn->prepare("UPDATE bookings SET status = 'rejected' WHERE id = ? AND car_id = ? AND status = 'pending'");
         $stmt->bind_param("ii", $booking_id, $car_id);
         if ($stmt->execute() && $stmt->affected_rows > 0) {
+            // Cập nhật payment thành failed (nếu có và chưa completed)
+            $update_payment = $conn->prepare("UPDATE payments SET status = 'failed' WHERE booking_id = ? AND status != 'completed'");
+            $update_payment->bind_param("i", $booking_id);
+            $update_payment->execute();
+            
             $feedback = ['type' => 'success', 'message' => 'Đã từ chối đơn đặt xe.'];
         }
     } elseif ($action === 'complete') {

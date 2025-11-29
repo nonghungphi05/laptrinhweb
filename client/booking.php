@@ -112,6 +112,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Địa chỉ nhận xe mặc định từ chủ xe
 $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['location']] ?? $car['location']);
+
+// Lấy danh sách các ngày đã được đặt (confirmed hoặc pending)
+$booked_stmt = $conn->prepare("SELECT start_date, end_date, status FROM bookings 
+    WHERE car_id = ? AND status IN ('confirmed', 'pending')
+    ORDER BY start_date ASC");
+$booked_stmt->bind_param("i", $car_id);
+$booked_stmt->execute();
+$booked_result = $booked_stmt->get_result();
+$booked_ranges = [];
+while ($row = $booked_result->fetch_assoc()) {
+    $booked_ranges[] = [
+        'start' => $row['start_date'],
+        'end' => $row['end_date'],
+        'status' => $row['status']
+    ];
+}
+
+// Lấy danh sách địa chỉ đã lưu của user
+$user_addresses = [];
+$addr_stmt = $conn->prepare("SELECT id, label, recipient_name, phone, address_line, district, city, province, is_default 
+    FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+$addr_stmt->bind_param("i", $user_id);
+$addr_stmt->execute();
+$addr_result = $addr_stmt->get_result();
+while ($row = $addr_result->fetch_assoc()) {
+    // Tạo địa chỉ đầy đủ
+    $full_address_parts = array_filter([
+        $row['address_line'],
+        $row['district'],
+        $row['city'],
+        $row['province']
+    ]);
+    $row['full_address'] = implode(', ', $full_address_parts);
+    $user_addresses[] = $row;
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi" class="light">
@@ -202,9 +237,18 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                         </div>
                     </div>
 
-                    <form method="POST" id="bookingForm" class="space-y-6">
-                        <!-- Ngày và giờ -->
-                        <div class="grid gap-4 md:grid-cols-2">
+                        <form method="POST" id="bookingForm" class="space-y-6">
+                            <!-- Thông báo trùng lịch -->
+                            <div id="dateConflictWarning" class="hidden rounded-2xl border border-red-300 bg-red-50 text-red-700 px-4 py-3 flex items-center gap-3">
+                                <span class="material-symbols-outlined text-red-500">warning</span>
+                                <div>
+                                    <p class="font-semibold">Xe đã có người đặt trong khoảng thời gian này!</p>
+                                    <p class="text-sm" id="conflictDetails"></p>
+                                </div>
+                            </div>
+
+                            <!-- Ngày và giờ -->
+                            <div class="grid gap-4 md:grid-cols-2">
                             <div class="p-4 border border-[#eee1d4] rounded-2xl space-y-4">
                                 <p class="font-semibold text-sm flex items-center gap-2">
                                     <span class="material-symbols-outlined text-primary">login</span>
@@ -305,15 +349,79 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                             </div>
 
                             <!-- Địa chỉ giao xe (hiển thị khi chọn giao tận nơi) -->
-                            <div id="delivery_address_section" class="<?php echo ($_POST['pickup_type'] ?? 'self') === 'delivery' ? '' : 'hidden'; ?>">
-                                <label class="text-sm text-slate block mb-2" for="pickup_location">Địa chỉ giao xe *</label>
-                                <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">home</span>
-                                    <input type="text" id="pickup_location" name="pickup_location"
-                                           class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
-                                           placeholder="Nhập địa chỉ đầy đủ..."
-                                           value="<?php echo htmlspecialchars($_POST['pickup_location'] ?? ''); ?>">
+                            <div id="delivery_address_section" class="<?php echo ($_POST['pickup_type'] ?? 'self') === 'delivery' ? '' : 'hidden'; ?> space-y-4">
+                                <?php if (!empty($user_addresses)): ?>
+                                <!-- Chọn từ địa chỉ đã lưu -->
+                                <div>
+                                    <label class="text-sm text-slate block mb-2">Chọn địa chỉ đã lưu</label>
+                                    <div class="space-y-2">
+                                        <?php foreach ($user_addresses as $addr): ?>
+                                            <label class="flex items-start gap-3 p-3 border border-[#e5d5c7] rounded-xl cursor-pointer hover:border-primary transition-colors saved-address-option <?php echo $addr['is_default'] ? 'border-primary bg-primary/5' : ''; ?>">
+                                                <input type="radio" name="saved_address" value="<?php echo (int)$addr['id']; ?>" 
+                                                       data-address="<?php echo htmlspecialchars($addr['full_address']); ?>"
+                                                       class="mt-1 text-primary focus:ring-primary"
+                                                       <?php echo $addr['is_default'] ? 'checked' : ''; ?>>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-semibold text-sm"><?php echo htmlspecialchars($addr['label']); ?></span>
+                                                        <?php if ($addr['is_default']): ?>
+                                                            <span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Mặc định</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <p class="text-xs text-slate mt-1"><?php echo htmlspecialchars($addr['recipient_name']); ?> • <?php echo htmlspecialchars($addr['phone']); ?></p>
+                                                    <p class="text-xs text-slate"><?php echo htmlspecialchars($addr['full_address']); ?></p>
+                                                </div>
+                                            </label>
+                                        <?php endforeach; ?>
+                                        
+                                        <!-- Option nhập địa chỉ mới -->
+                                        <label class="flex items-start gap-3 p-3 border border-[#e5d5c7] rounded-xl cursor-pointer hover:border-primary transition-colors saved-address-option" id="new_address_option">
+                                            <input type="radio" name="saved_address" value="new" class="mt-1 text-primary focus:ring-primary">
+                                            <div class="flex-1">
+                                                <span class="font-semibold text-sm flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-base">add_location</span>
+                                                    Nhập địa chỉ mới
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
+                                
+                                <!-- Input địa chỉ mới (ẩn khi chọn địa chỉ đã lưu) -->
+                                <div id="new_address_input" class="hidden">
+                                    <label class="text-sm text-slate block mb-2" for="pickup_location">Địa chỉ giao xe mới *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">home</span>
+                                        <input type="text" id="pickup_location_new" 
+                                               class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
+                                               placeholder="Nhập địa chỉ đầy đủ...">
+                                    </div>
+                                    <p class="text-xs text-slate mt-2 flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm">info</span>
+                                        <a href="addresses.php" class="text-primary hover:underline">Quản lý địa chỉ</a> để lưu địa chỉ thường dùng
+                                    </p>
+                                </div>
+                                
+                                <!-- Hidden input để submit -->
+                                <input type="hidden" id="pickup_location" name="pickup_location" value="<?php echo htmlspecialchars($_POST['pickup_location'] ?? ($user_addresses[0]['full_address'] ?? '')); ?>">
+                                
+                                <?php else: ?>
+                                <!-- Không có địa chỉ đã lưu - chỉ hiện input -->
+                                <div>
+                                    <label class="text-sm text-slate block mb-2" for="pickup_location">Địa chỉ giao xe *</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate">home</span>
+                                        <input type="text" id="pickup_location" name="pickup_location"
+                                               class="w-full rounded-xl border border-[#e5d5c7] pl-12 py-3 focus:ring-primary focus:border-primary"
+                                               placeholder="Nhập địa chỉ đầy đủ..."
+                                               value="<?php echo htmlspecialchars($_POST['pickup_location'] ?? ''); ?>">
+                                    </div>
+                                    <p class="text-xs text-slate mt-2 flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm">info</span>
+                                        <a href="addresses.php" class="text-primary hover:underline">Thêm địa chỉ mới</a> để tiện đặt xe lần sau
+                                    </p>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Hiển thị địa chỉ chủ xe khi chọn tự đến -->
@@ -371,8 +479,59 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
         const deliveryAddressSection = document.getElementById('delivery_address_section');
         const selfPickupInfo = document.getElementById('self_pickup_info');
         const deliveryFeeText = document.getElementById('deliveryFeeText');
-    const pickupTimeSelect = document.getElementById('pickup_time');
-    const pickupTimeWarning = document.getElementById('pickup_time_warning');
+        const pickupTimeSelect = document.getElementById('pickup_time');
+        const pickupTimeWarning = document.getElementById('pickup_time_warning');
+        const dateConflictWarning = document.getElementById('dateConflictWarning');
+        const conflictDetails = document.getElementById('conflictDetails');
+        const submitBtn = document.querySelector('button[type="submit"]');
+        
+        // Danh sách các khoảng ngày đã được đặt
+        const bookedRanges = <?php echo json_encode($booked_ranges); ?>;
+        
+        // Hàm format ngày sang DD/MM/YYYY
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('vi-VN');
+        }
+        
+        // Kiểm tra xem 2 khoảng ngày có overlap không
+        function checkDateConflict(startDate, endDate) {
+            if (!startDate || !endDate) return null;
+            
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            for (const range of bookedRanges) {
+                const bookedStart = new Date(range.start);
+                const bookedEnd = new Date(range.end);
+                
+                // Kiểm tra overlap: start1 <= end2 AND end1 >= start2
+                if (start <= bookedEnd && end >= bookedStart) {
+                    return {
+                        start: range.start,
+                        end: range.end,
+                        status: range.status === 'confirmed' ? 'đã xác nhận' : 'đang chờ xử lý'
+                    };
+                }
+            }
+            return null;
+        }
+        
+        // Hiển thị hoặc ẩn cảnh báo trùng lịch
+        function updateConflictWarning() {
+            const conflict = checkDateConflict(startDateInput.value, endDateInput.value);
+            
+            if (conflict) {
+                conflictDetails.textContent = `Đã có đơn đặt (${conflict.status}) từ ${formatDate(conflict.start)} đến ${formatDate(conflict.end)}. Vui lòng chọn ngày khác.`;
+                dateConflictWarning.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                dateConflictWarning.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
 
         function calculateTotal() {
             const startDate = new Date(startDateInput.value);
@@ -470,10 +629,14 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
                     endDateInput.value = minEndDate;
                 }
             }
-        updatePickupTimeOptions();
+            updatePickupTimeOptions();
             calculateTotal();
+            updateConflictWarning();
         });
-        endDateInput.addEventListener('change', calculateTotal);
+        endDateInput.addEventListener('change', function() {
+            calculateTotal();
+            updateConflictWarning();
+        });
         pickupTypeInputs.forEach(input => {
             input.addEventListener('change', toggleDeliverySection);
         });
@@ -498,9 +661,62 @@ $default_pickup_address = $car['pickup_address'] ?: ($location_labels[$car['loca
             }
         });
 
+        // Xử lý chọn địa chỉ giao xe
+        const savedAddressInputs = document.querySelectorAll('input[name="saved_address"]');
+        const newAddressInput = document.getElementById('new_address_input');
+        const pickupLocationHidden = document.getElementById('pickup_location');
+        const pickupLocationNew = document.getElementById('pickup_location_new');
+        
+        function updatePickupLocation() {
+            const selectedRadio = document.querySelector('input[name="saved_address"]:checked');
+            if (!selectedRadio) return;
+            
+            if (selectedRadio.value === 'new') {
+                // Hiện input nhập địa chỉ mới
+                if (newAddressInput) newAddressInput.classList.remove('hidden');
+                if (pickupLocationNew && pickupLocationHidden) {
+                    pickupLocationHidden.value = pickupLocationNew.value;
+                }
+            } else {
+                // Ẩn input và dùng địa chỉ đã chọn
+                if (newAddressInput) newAddressInput.classList.add('hidden');
+                if (pickupLocationHidden) {
+                    pickupLocationHidden.value = selectedRadio.dataset.address || '';
+                }
+            }
+            
+            // Highlight selected address
+            document.querySelectorAll('.saved-address-option').forEach(opt => {
+                opt.classList.remove('border-primary', 'bg-primary/5');
+                opt.classList.add('border-[#e5d5c7]');
+            });
+            if (selectedRadio.closest('.saved-address-option')) {
+                selectedRadio.closest('.saved-address-option').classList.add('border-primary', 'bg-primary/5');
+                selectedRadio.closest('.saved-address-option').classList.remove('border-[#e5d5c7]');
+            }
+        }
+        
+        // Event listeners cho chọn địa chỉ
+        savedAddressInputs.forEach(input => {
+            input.addEventListener('change', updatePickupLocation);
+        });
+        
+        // Cập nhật hidden input khi nhập địa chỉ mới
+        if (pickupLocationNew) {
+            pickupLocationNew.addEventListener('input', function() {
+                if (pickupLocationHidden) {
+                    pickupLocationHidden.value = this.value;
+                }
+            });
+        }
+        
+        // Initial setup for saved addresses
+        updatePickupLocation();
+
         // Initial calculation
         calculateTotal();
-    updatePickupTimeOptions();
+        updatePickupTimeOptions();
+        updateConflictWarning();
     </script>
 </body>
 </html>

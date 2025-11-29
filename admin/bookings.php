@@ -12,6 +12,20 @@ $base_path = getBasePath();
 $message = '';
 $error = '';
 
+// ===== AUTO-CANCEL: Tự động hủy đơn pending chưa thanh toán sau 15 phút =====
+$auto_cancel_minutes = 15;
+$auto_cancelled_count = autoCancelExpiredBookings($auto_cancel_minutes);
+if ($auto_cancelled_count > 0) {
+    $message = "Đã tự động hủy {$auto_cancelled_count} đơn quá hạn thanh toán ({$auto_cancel_minutes} phút).";
+}
+
+// Cập nhật payment thành failed cho các đơn đã hủy/từ chối (dữ liệu cũ)
+$conn->query("UPDATE payments p 
+    JOIN bookings b ON p.booking_id = b.id 
+    SET p.status = 'failed' 
+    WHERE b.status IN ('cancelled', 'rejected') 
+    AND p.status NOT IN ('completed', 'failed', 'refunded')");
+
 // Xử lý thay đổi trạng thái
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'change_status') {
@@ -23,6 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->bind_param("si", $new_status, $booking_id);
             if ($stmt->execute()) {
                 $message = 'Đã cập nhật trạng thái đơn đặt thành công!';
+                
+                // Nếu hủy hoặc từ chối đơn, cập nhật payment thành failed (nếu chưa completed)
+                if (in_array($new_status, ['cancelled', 'rejected'])) {
+                    $update_payment = $conn->prepare("UPDATE payments SET status = 'failed' WHERE booking_id = ? AND status != 'completed'");
+                    $update_payment->bind_param("i", $booking_id);
+                    $update_payment->execute();
+                }
             } else {
                 $error = 'Có lỗi xảy ra. Vui lòng thử lại.';
             }
@@ -457,6 +478,26 @@ $payment_colors = [
                                         <?php echo date('d/m/Y', strtotime($booking['created_at'])); ?>
                                         <br>
                                         <span class="text-xs"><?php echo date('H:i', strtotime($booking['created_at'])); ?></span>
+                                        <?php 
+                                        // Hiển thị thời gian còn lại nếu đơn pending và chưa thanh toán
+                                        $payment_status = $booking['payment_status'] ?? 'pending';
+                                        if ($booking['status'] === 'pending' && $payment_status !== 'completed') {
+                                            $created_time = strtotime($booking['created_at']);
+                                            $expire_time = $created_time + ($auto_cancel_minutes * 60);
+                                            $remaining_seconds = $expire_time - time();
+                                            
+                                            if ($remaining_seconds > 0) {
+                                                $remaining_minutes = floor($remaining_seconds / 60);
+                                                $remaining_secs = $remaining_seconds % 60;
+                                                echo '<br><span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-600 font-medium">';
+                                                echo '<span class="material-symbols-outlined text-xs align-middle">timer</span> ';
+                                                echo 'Còn ' . $remaining_minutes . ':' . str_pad($remaining_secs, 2, '0', STR_PAD_LEFT);
+                                                echo '</span>';
+                                            } else {
+                                                echo '<br><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">Đã hết hạn</span>';
+                                            }
+                                        }
+                                        ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

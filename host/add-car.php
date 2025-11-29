@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $location = $_POST['location'] ?? 'hcm';
     $price_per_day = floatval($_POST['price_per_day'] ?? 0);
     $description = trim($_POST['description'] ?? '');
-    $status = $_POST['status'] ?? 'available';
+    $status = 'available'; // Xe mới đăng luôn có trạng thái sẵn sàng
 
 if ($name === '' || $car_type === '' || $location === '' || $price_per_day <= 0) {
         $error = 'Vui lòng điền đầy đủ thông tin bắt buộc.';
@@ -211,17 +211,11 @@ $uploaded_images = [];
                                     <?php endforeach; ?>
                                 </select>
                             </label>
-                            <label class="flex flex-col gap-2 md:col-span-2">
+                            <label class="flex flex-col gap-2">
                                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Giá thuê (VNĐ) *</span>
-                                <div class="flex flex-col gap-2 sm:flex-row">
-                                    <input type="number" step="1000" min="0" name="price_per_day" required value="<?php echo htmlspecialchars($_POST['price_per_day'] ?? ''); ?>"
-                                           class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30 flex-1"
-                                           placeholder="Ví dụ: 500000 (theo ngày)">
-                                    <select name="status" class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30">
-                                        <option value="available" <?php echo (($_POST['status'] ?? 'available') === 'available') ? 'selected' : ''; ?>>Còn xe</option>
-                                        <option value="maintenance" <?php echo (($_POST['status'] ?? '') === 'maintenance') ? 'selected' : ''; ?>>Bảo trì</option>
-                                    </select>
-                                </div>
+                                <input type="number" step="1000" min="0" name="price_per_day" required value="<?php echo htmlspecialchars($_POST['price_per_day'] ?? ''); ?>"
+                                       class="rounded-xl border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base focus:border-primary focus:ring-primary/30"
+                                       placeholder="Ví dụ: 500000 (theo ngày)">
                                 <span class="text-xs text-gray-500 dark:text-gray-400">Nhập giá thuê theo ngày hoặc theo chuyến tùy dịch vụ.</span>
                             </label>
                             <label class="flex flex-col gap-2 md:col-span-2">

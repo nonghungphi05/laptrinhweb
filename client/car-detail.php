@@ -8,7 +8,7 @@ require_once '../config/session.php';
 $car_id = $_GET['id'] ?? 0;
 
 // Lấy thông tin xe
-$stmt = $conn->prepare("SELECT c.*, u.full_name as owner_name, u.phone as owner_phone,
+$stmt = $conn->prepare("SELECT c.*, u.full_name as owner_name, u.phone as owner_phone, u.created_at as owner_joined_at,
     (SELECT AVG(rating) FROM reviews WHERE car_id = c.id) as avg_rating,
     (SELECT COUNT(*) FROM reviews WHERE car_id = c.id) as review_count
     FROM cars c 
@@ -25,6 +25,17 @@ if ($result->num_rows === 0) {
 
 $car = $result->fetch_assoc();
 $current_user_id = $_SESSION['user_id'] ?? null;
+
+// Lấy tất cả ảnh của xe
+$img_stmt = $conn->prepare("SELECT * FROM car_images WHERE car_id = ? ORDER BY is_primary DESC, id ASC");
+$img_stmt->bind_param("i", $car_id);
+$img_stmt->execute();
+$car_images = $img_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Nếu không có ảnh trong car_images, dùng ảnh từ bảng cars
+if (empty($car_images) && $car['image']) {
+    $car_images = [['file_path' => $car['image'], 'is_primary' => 1]];
+}
 
 // Lấy đánh giá
 $stmt = $conn->prepare("SELECT r.*, u.full_name 
@@ -112,9 +123,69 @@ $can_book = isLoggedIn()
                 <span>Chi tiết xe</span>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-8">
-                <div class="bg-cover bg-center min-h-[420px] rounded-2xl shadow" style="background-image:url('<?php echo htmlspecialchars($main_image); ?>');"></div>
-                <!-- Bỏ gallery ảnh mẫu, chỉ hiển thị ảnh chính của xe -->
+            <!-- Gallery ảnh xe -->
+            <div class="mb-8">
+                <?php if (!empty($car_images)): ?>
+                    <?php $primary_image = '../uploads/' . ($car_images[0]['file_path'] ?: 'default-car.jpg'); ?>
+                    
+                    <!-- Ảnh chính -->
+                    <div class="relative mb-4">
+                        <img id="mainImage" src="<?php echo htmlspecialchars($primary_image); ?>" 
+                             alt="<?php echo htmlspecialchars($car['name']); ?>"
+                             class="w-full rounded-2xl shadow cursor-pointer"
+                             onclick="openLightbox(0)"
+                             onerror="this.src='../uploads/default-car.jpg'">
+                        
+                        <?php if (count($car_images) > 1): ?>
+                            <div class="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                                <span class="material-symbols-outlined text-sm align-middle">photo_library</span>
+                                <?php echo count($car_images); ?> ảnh
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Thumbnails -->
+                    <?php if (count($car_images) > 1): ?>
+                        <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                            <?php foreach ($car_images as $index => $img): ?>
+                                <div class="relative cursor-pointer group overflow-hidden rounded-lg" onclick="changeMainImage(<?php echo $index; ?>)">
+                                    <img src="../uploads/<?php echo htmlspecialchars($img['file_path']); ?>" 
+                                         alt="Ảnh <?php echo $index + 1; ?>"
+                                         class="w-full h-20 object-cover rounded-lg border-2 transition-all <?php echo $index === 0 ? 'border-primary' : 'border-transparent hover:border-primary/50'; ?>"
+                                         id="thumb-<?php echo $index; ?>"
+                                         onerror="this.src='../uploads/default-car.jpg'">
+                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg"></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="rounded-2xl shadow overflow-hidden">
+                        <img src="<?php echo htmlspecialchars($main_image); ?>" alt="<?php echo htmlspecialchars($car['name']); ?>" class="w-full">
+                    </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- Lightbox Modal -->
+            <div id="lightbox" class="fixed inset-0 z-50 bg-black/90 hidden items-center justify-center" onclick="closeLightbox(event)">
+                <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white hover:text-primary transition-colors z-10">
+                    <span class="material-symbols-outlined text-4xl">close</span>
+                </button>
+                
+                <?php if (count($car_images) > 1): ?>
+                    <button onclick="prevImage(event)" class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors z-10">
+                        <span class="material-symbols-outlined text-5xl">chevron_left</span>
+                    </button>
+                    <button onclick="nextImage(event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors z-10">
+                        <span class="material-symbols-outlined text-5xl">chevron_right</span>
+                    </button>
+                <?php endif; ?>
+                
+                <img id="lightboxImage" src="" alt="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg">
+                
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm">
+                    <span id="lightboxCounter"></span>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
@@ -226,7 +297,7 @@ $can_book = isLoggedIn()
                             <div class="size-16 rounded-full bg-cover bg-center" style="background-image:url('https://ui-avatars.com/api/?name=<?php echo urlencode($car['owner_name']); ?>&background=f48c25&color=fff');"></div>
                             <div>
                                 <p class="text-lg font-bold text-secondary"><?php echo htmlspecialchars($car['owner_name']); ?></p>
-                                <p class="text-sm text-gray-500">Tham gia từ 2023</p>
+                                <p class="text-sm text-gray-500">Tham gia từ <?php echo date('Y', strtotime($car['owner_joined_at'])); ?></p>
                                 <?php if ($car['owner_phone']): ?>
                                     <p class="text-sm text-gray-500"><?php echo htmlspecialchars($car['owner_phone']); ?></p>
                                 <?php endif; ?>
@@ -249,18 +320,97 @@ $can_book = isLoggedIn()
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow p-6 space-y-4">
-                        <h3 class="text-lg font-bold text-secondary">Địa điểm xe</h3>
-                        <div class="w-full h-48 bg-gray-200 rounded-2xl overflow-hidden">
-                            <div class="w-full h-full bg-cover bg-center" style="background-image:url('https://maps.googleapis.com/maps/api/staticmap?center=<?php echo urlencode($car['location']); ?>&zoom=13&size=640x360&scale=2&markers=color:red%7C<?php echo urlencode($car['location']); ?>');"></div>
-                        </div>
-                    </div>
                 </aside>
             </div>
         </main>
 
         <?php include '../includes/footer.php'; ?>
     </div>
+    
+    <script>
+        // Danh sách ảnh
+        const carImages = <?php echo json_encode(array_map(function($img) {
+            return '../uploads/' . $img['file_path'];
+        }, $car_images)); ?>;
+        
+        let currentImageIndex = 0;
+        
+        // Đổi ảnh chính
+        function changeMainImage(index) {
+            currentImageIndex = index;
+            const mainImage = document.getElementById('mainImage');
+            mainImage.src = carImages[index];
+            
+            // Update thumbnail borders
+            document.querySelectorAll('[id^="thumb-"]').forEach((thumb, i) => {
+                if (i === index) {
+                    thumb.classList.remove('border-transparent', 'hover:border-primary/50');
+                    thumb.classList.add('border-primary');
+                } else {
+                    thumb.classList.remove('border-primary');
+                    thumb.classList.add('border-transparent', 'hover:border-primary/50');
+                }
+            });
+        }
+        
+        // Mở lightbox
+        function openLightbox(index) {
+            currentImageIndex = index;
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            const counter = document.getElementById('lightboxCounter');
+            
+            lightboxImage.src = carImages[index];
+            counter.textContent = `${index + 1} / ${carImages.length}`;
+            
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Đóng lightbox
+        function closeLightbox(event) {
+            if (event && event.target !== event.currentTarget) return;
+            
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+        
+        // Ảnh trước
+        function prevImage(event) {
+            event.stopPropagation();
+            currentImageIndex = (currentImageIndex - 1 + carImages.length) % carImages.length;
+            updateLightboxImage();
+        }
+        
+        // Ảnh sau
+        function nextImage(event) {
+            event.stopPropagation();
+            currentImageIndex = (currentImageIndex + 1) % carImages.length;
+            updateLightboxImage();
+        }
+        
+        // Cập nhật ảnh trong lightbox
+        function updateLightboxImage() {
+            const lightboxImage = document.getElementById('lightboxImage');
+            const counter = document.getElementById('lightboxCounter');
+            
+            lightboxImage.src = carImages[currentImageIndex];
+            counter.textContent = `${currentImageIndex + 1} / ${carImages.length}`;
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const lightbox = document.getElementById('lightbox');
+            if (lightbox.classList.contains('hidden')) return;
+            
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') prevImage(e);
+            if (e.key === 'ArrowRight') nextImage(e);
+        });
+    </script>
 </body>
 </html>
 
