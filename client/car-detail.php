@@ -99,6 +99,28 @@ $location_labels = [
     'phuquoc' => 'Phú Quốc',
 ];
 
+// Loại nhiên liệu
+$fuel_labels = [
+    'gasoline' => 'Xăng',
+    'diesel'   => 'Dầu diesel',
+    'electric' => 'Điện',
+    'hybrid'   => 'Hybrid (Xăng + Điện)',
+];
+
+// Icon cho nhiên liệu
+$fuel_icons = [
+    'gasoline' => 'local_gas_station',
+    'diesel'   => 'local_gas_station',
+    'electric' => 'ev_station',
+    'hybrid'   => 'electric_car',
+];
+
+// Hộp số
+$transmission_labels = [
+    'auto'   => 'Tự động',
+    'manual' => 'Số sàn',
+];
+
 // Trạng thái xe
 $status_text = [
     'available'   => 'Còn xe',
@@ -225,25 +247,38 @@ $can_book = isLoggedIn()
 
                     <div class="border-b border-border-light pb-6 space-y-6">
                         <h3 class="text-2xl font-bold text-secondary">Thông tin chi tiết</h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">directions_car</span>
                                 <p class="text-sm text-gray-500 mt-2">Loại xe</p>
                                 <p class="font-semibold">
-                                    <?php
-                                        $type_key = $car['car_type'];
-                                        echo htmlspecialchars($car_type_labels[$type_key] ?? ucfirst($type_key));
-                                    ?>
+                                    <?php echo htmlspecialchars($car_type_labels[$car['car_type']] ?? ucfirst($car['car_type'])); ?>
+                                </p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">airline_seat_recline_extra</span>
+                                <p class="text-sm text-gray-500 mt-2">Số ghế</p>
+                                <p class="font-semibold"><?php echo (int)$car['seats']; ?> chỗ</p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary"><?php echo $fuel_icons[$car['fuel']] ?? 'local_gas_station'; ?></span>
+                                <p class="text-sm text-gray-500 mt-2">Nhiên liệu</p>
+                                <p class="font-semibold <?php echo $car['fuel'] === 'electric' ? 'text-green-600' : ($car['fuel'] === 'hybrid' ? 'text-blue-600' : ''); ?>">
+                                    <?php echo htmlspecialchars($fuel_labels[$car['fuel']] ?? ucfirst($car['fuel'])); ?>
+                                </p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-white shadow-sm">
+                                <span class="material-symbols-outlined text-3xl text-primary">settings</span>
+                                <p class="text-sm text-gray-500 mt-2">Hộp số</p>
+                                <p class="font-semibold">
+                                    <?php echo htmlspecialchars($transmission_labels[$car['transmission']] ?? ucfirst($car['transmission'])); ?>
                                 </p>
                             </div>
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
                                 <span class="material-symbols-outlined text-3xl text-primary">location_on</span>
                                 <p class="text-sm text-gray-500 mt-2">Địa điểm</p>
                                 <p class="font-semibold">
-                                    <?php
-                                        $loc_key = $car['location'];
-                                        echo htmlspecialchars($location_labels[$loc_key] ?? $loc_key);
-                                    ?>
+                                    <?php echo htmlspecialchars($location_labels[$car['location']] ?? $car['location']); ?>
                                 </p>
                             </div>
                             <div class="p-4 rounded-2xl bg-white shadow-sm">
@@ -294,9 +329,21 @@ $can_book = isLoggedIn()
                     <div class="bg-white rounded-2xl shadow p-6 space-y-4">
                         <h3 class="text-lg font-bold text-secondary">Thông tin chủ xe</h3>
                         <div class="flex items-center gap-4">
-                            <div class="size-16 rounded-full bg-cover bg-center" style="background-image:url('https://ui-avatars.com/api/?name=<?php echo urlencode($car['owner_name']); ?>&background=f48c25&color=fff');"></div>
+                            <?php 
+                                $owner_name = $car['owner_name'];
+                                // Lấy 2 ký tự đầu cho avatar
+                                $words = explode(' ', $owner_name);
+                                $initials = '';
+                                foreach ($words as $w) {
+                                    $initials .= mb_substr($w, 0, 1, 'UTF-8');
+                                }
+                                $initials = mb_strtoupper(mb_substr($initials, 0, 2, 'UTF-8'), 'UTF-8');
+                            ?>
+                            <div class="size-16 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                                <?php echo $initials; ?>
+                            </div>
                             <div>
-                                <p class="text-lg font-bold text-secondary"><?php echo htmlspecialchars($car['owner_name']); ?></p>
+                                <p class="text-lg font-bold text-secondary"><?php echo htmlspecialchars($owner_name, ENT_QUOTES, 'UTF-8'); ?></p>
                                 <p class="text-sm text-gray-500">Tham gia từ <?php echo date('Y', strtotime($car['owner_joined_at'])); ?></p>
                                 <?php if ($car['owner_phone']): ?>
                                     <p class="text-sm text-gray-500"><?php echo htmlspecialchars($car['owner_phone']); ?></p>

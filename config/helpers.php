@@ -48,11 +48,6 @@ function uploadFile($file, $destination_dir = '../uploads/') {
         return false;
     }
     
-    // Kiểm tra lỗi upload
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        return false;
-    }
-    
     // Kiểm tra kích thước file (tối đa 5MB)
     $max_size = 5 * 1024 * 1024; // 5MB
     if ($file['size'] > $max_size) {

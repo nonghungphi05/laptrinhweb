@@ -182,6 +182,14 @@ while ($row = $stmt->fetch_assoc()) {
                         <span class="absolute right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"><?php echo $pending_bookings; ?></span>
                     <?php endif; ?>
                 </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="reviews.php">
+                    <span class="material-symbols-outlined">star</span>
+                    <span>Đánh giá</span>
+                </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="payouts.php">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span>Rút tiền</span>
+                </a>
             </nav>
             
             <p class="text-xs text-slate-400 uppercase tracking-wider mb-4 mt-8">Báo cáo</p>

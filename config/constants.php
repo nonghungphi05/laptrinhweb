@@ -4,7 +4,7 @@
  */
 
 // Base URL (cập nhật theo domain thực tế)
-define('BASE_URL', 'http://localhost/webthuexe');
+define('BASE_URL', 'http://localhost/laptrinhweb');
 
 // Upload settings
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
@@ -40,9 +40,9 @@ define('PAYMENT_STATUS', [
     'cancelled' => 'Đã hủy'
 ]);
 
-// User roles
+// User roles (phù hợp với database: user, admin, host)
 define('USER_ROLES', [
-    'customer' => 'Khách hàng',
+    'user' => 'Người dùng',
     'host' => 'Chủ xe',
     'admin' => 'Quản trị viên'
 ]);

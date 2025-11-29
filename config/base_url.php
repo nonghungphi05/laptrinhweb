@@ -9,8 +9,8 @@ $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVE
 $host = $_SERVER['HTTP_HOST'];
 $script_path = dirname($_SERVER['SCRIPT_NAME']);
 
-// Nếu chạy ở localhost/webthuexe
-define('BASE_URL', '/webthuexe');
+// Nếu chạy ở localhost/laptrinhweb
+define('BASE_URL', '/laptrinhweb');
 define('FULL_BASE_URL', $protocol . $host . BASE_URL);
 
 /**

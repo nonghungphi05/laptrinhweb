@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $car_id = intval($_POST['car_id']);
         $new_status = $_POST['new_status'];
         
-        if (in_array($new_status, ['available', 'rented', 'maintenance', 'hidden'])) {
+        if (in_array($new_status, ['available', 'maintenance'])) {
             $stmt = $conn->prepare("UPDATE cars SET status = ? WHERE id = ?");
             $stmt->bind_param("si", $new_status, $car_id);
             if ($stmt->execute()) {
@@ -66,7 +66,7 @@ $where_conditions = [];
 $params = [];
 $types = "";
 
-if ($status_filter && in_array($status_filter, ['available', 'rented', 'maintenance', 'hidden'])) {
+if ($status_filter && in_array($status_filter, ['available', 'rented', 'maintenance'])) {
     $where_conditions[] = "c.status = ?";
     $params[] = $status_filter;
     $types .= "s";
@@ -142,15 +142,13 @@ $car_type_labels = [
 $status_labels = [
     'available' => 'Sẵn sàng',
     'rented' => 'Đang thuê',
-    'maintenance' => 'Bảo trì',
-    'hidden' => 'Đã ẩn'
+    'maintenance' => 'Bảo trì'
 ];
 
 $status_colors = [
     'available' => 'bg-green-100 text-green-800',
     'rented' => 'bg-blue-100 text-blue-800',
-    'maintenance' => 'bg-yellow-100 text-yellow-800',
-    'hidden' => 'bg-gray-100 text-gray-800'
+    'maintenance' => 'bg-yellow-100 text-yellow-800'
 ];
 ?>
 <!DOCTYPE html>
@@ -214,6 +212,14 @@ $status_colors = [
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>Đơn đặt xe</span>
                 </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="reviews.php">
+                    <span class="material-symbols-outlined">star</span>
+                    <span>Đánh giá</span>
+                </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="payouts.php">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span>Rút tiền</span>
+                </a>
             </nav>
         </div>
         <div class="space-y-1">
@@ -274,10 +280,6 @@ $status_colors = [
             <a href="?status=maintenance" class="bg-white dark:bg-zinc-800 p-4 rounded-xl border <?php echo $status_filter === 'maintenance' ? 'border-primary' : 'border-slate-200 dark:border-zinc-700'; ?> hover:border-primary transition-colors">
                 <p class="text-sm text-yellow-600">Bảo trì</p>
                 <p class="text-2xl font-bold"><?php echo $status_stats['maintenance'] ?? 0; ?></p>
-            </a>
-            <a href="?status=hidden" class="bg-white dark:bg-zinc-800 p-4 rounded-xl border <?php echo $status_filter === 'hidden' ? 'border-primary' : 'border-slate-200 dark:border-zinc-700'; ?> hover:border-primary transition-colors">
-                <p class="text-sm text-gray-600">Đã ẩn</p>
-                <p class="text-2xl font-bold"><?php echo $status_stats['hidden'] ?? 0; ?></p>
             </a>
         </section>
 
@@ -367,9 +369,7 @@ $status_colors = [
                                             <select name="new_status" onchange="this.form.submit()" 
                                                     class="text-xs px-2 py-1 rounded-full border-0 cursor-pointer <?php echo $status_colors[$car['status']] ?? 'bg-gray-100'; ?>">
                                                 <option value="available" <?php echo $car['status'] === 'available' ? 'selected' : ''; ?>>Sẵn sàng</option>
-                                                <option value="rented" <?php echo $car['status'] === 'rented' ? 'selected' : ''; ?>>Đang thuê</option>
-                                                <option value="maintenance" <?php echo $car['status'] === 'maintenance' ? 'selected' : ''; ?>>Bảo trì</option>
-                                                <option value="hidden" <?php echo $car['status'] === 'hidden' ? 'selected' : ''; ?>>Đã ẩn</option>
+                                                <option value="maintenance" <?php echo $car['status'] === 'maintenance' ? 'selected' : ''; ?>>Bảo trì / Tạm ẩn</option>
                                             </select>
                                         </form>
                                     </td>

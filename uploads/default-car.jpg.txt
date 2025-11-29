@@ -1,5 +1,0 @@
-Thư mục này chứa các hình ảnh xe được upload.
-
-Vui lòng đặt một file ảnh tên "default-car.jpg" vào đây để làm ảnh mặc định cho xe không có ảnh.
-
-Hoặc bạn có thể tải ảnh mặc định từ internet và đổi tên thành default-car.jpg.

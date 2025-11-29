@@ -270,10 +270,13 @@ $active_tab = isset($_GET['tab']) && $_GET['tab'] === 'register' ? 'register' : 
                             <!-- End Social Login Section -->
                             
                             <!-- Demo Accounts -->
-                            <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tài khoản demo:</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">Admin: <strong>admin</strong> / <strong>123456</strong></p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">User: <strong>user1</strong>, <strong>user2</strong>, <strong>user3</strong>, <strong>user4</strong> / <strong>123456</strong></p>
+                            <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-xs">
+                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tài khoản demo (mật khẩu: <strong>123456</strong>):</p>
+                                <div class="space-y-1 text-gray-600 dark:text-gray-400">
+                                    <p>👨‍💼 Admin: <strong>admin@carrental.vn</strong></p>
+                                    <p>🚗 Host: <strong>hoangminh@gmail.com</strong> • <strong>thanhnga@gmail.com</strong> • <strong>duclong@gmail.com</strong></p>
+                                    <p>👤 User: <strong>khachhang@gmail.com</strong></p>
+                                </div>
                             </div>
                         </div>
                     </div>

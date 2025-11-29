@@ -175,6 +175,14 @@ if (isset($_GET['msg']) && $_GET['msg']) {
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>Đơn đặt xe</span>
                 </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="reviews.php">
+                    <span class="material-symbols-outlined">star</span>
+                    <span>Đánh giá</span>
+                </a>
+                <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-600 dark:text-slate-300" href="payouts.php">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span>Rút tiền</span>
+                </a>
             </nav>
         </div>
         <div class="space-y-1">
